@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<AssemblyName>better_loading</AssemblyName>
+		<TargetFramework>net48</TargetFramework>
+		<LangVersion>11</LangVersion>
+		<WarningsAsErrors>CS8600;CS8602;CS8603</WarningsAsErrors>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Publicize Include="Assembly-CSharp" IncludeCompilerGeneratedMembers="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Nugget-->
+		<PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
+		
+		<!-- Misc -->
+		<Reference Include="0Harmony" />
+		<Reference Include="UnityModManager" />
+
+		<!-- Derail Valley -->
+		<Reference Include="Assembly-CSharp" />
+		<Reference Include="DV.LayeredAudio" />
+		<Reference Include="DV.NAudio" />
+		<Reference Include="DV.ThingTypes" />
+		<Reference Include="DV.Utils" />
+
+		<!-- Unity -->
+		<Reference Include="Unity.TextMeshPro" />
+
+		<!-- UnityEngine -->
+		<Reference Include="UnityEngine" />
+		<Reference Include="UnityEngine.AudioModule" />
+		<Reference Include="UnityEngine.CoreModule" />
+		<Reference Include="UnityEngine.ParticleSystemModule" />
+		<Reference Include="UnityEngine.PhysicsModule" />
+	</ItemGroup>
+</Project>

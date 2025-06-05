@@ -1,0 +1,9 @@
+.idea
+bin
+obj
+packages
+Directory.Build.targets
+better_loading.lnk
+Folder.DotSettings.user
+build
+Folder.DotSettings

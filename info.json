@@ -1,0 +1,9 @@
+{
+	"Id": "better_loading",
+	"Version": "0.0.1",
+	"DisplayName": "better_loading",
+	"Author": "Tostiman",
+	"EntryMethod": "better_loading.Main.Load",
+	"AssemblyName": "better_loading.dll",
+	"HomePage": "https://www.tostiman.com"
+}
