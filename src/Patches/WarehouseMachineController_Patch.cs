@@ -1,5 +1,4 @@
-﻿using DV.ThingTypes;
-using HarmonyLib;
+﻿using HarmonyLib;
 
 namespace better_loading.Patches;
 
@@ -19,7 +18,7 @@ public class WarehouseMachineController_StartLoadSequence_Patch
 		
 		Main.Log("hello there");
 		
-		CoalLoader.Instance.StartLoadingUnloading(__instance, true);
+		CoalLoader.Instance.EnterLoadingMode(__instance);
 
 		return false;
 	}

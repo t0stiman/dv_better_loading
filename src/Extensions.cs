@@ -10,20 +10,4 @@ public static class Extensions
 	{
 		return Globals.G.Types.CarTypeToLoadableCargo[trainCar.carLivery.parentType].Contains(cargoType);
 	}
-
-	public static T GetComponentInParents<T>(this Transform transform)
-	{
-		if (!transform.parent)
-		{
-			return default;
-		}
-
-		var component = transform.GetComponentInParent<T>();
-		if (component != null)
-		{
-			return component;
-		}
-
-		return transform.parent.GetComponentInParents<T>();
-	}
 }
