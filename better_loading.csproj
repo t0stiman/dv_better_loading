@@ -34,5 +34,6 @@
 		<Reference Include="UnityEngine.CoreModule" />
 		<Reference Include="UnityEngine.ParticleSystemModule" />
 		<Reference Include="UnityEngine.PhysicsModule" />
+		<Reference Include="UnityEngine.IMGUIModule" />
 	</ItemGroup>
 </Project>

@@ -10,6 +10,7 @@ namespace better_loading
 	{
 		private static UnityModManager.ModEntry myModEntry;
 		private static Harmony myHarmony;
+		public static Settings MySettings { get; private set; }
 
 		//===========================================
 
@@ -19,6 +20,10 @@ namespace better_loading
 			{
 				myModEntry = modEntry;
 				myModEntry.OnUnload = OnUnload;
+				
+				MySettings = UnityModManager.ModSettings.Load<Settings>(modEntry);
+				modEntry.OnGUI = entry => MySettings.Draw(entry);
+				modEntry.OnSaveGUI = entry => MySettings.Save(entry);
 				
 				myHarmony = new Harmony(myModEntry.Info.Id);
 				myHarmony.PatchAll(Assembly.GetExecutingAssembly());
@@ -41,25 +46,25 @@ namespace better_loading
 		}
 
 		// Logger functions
-		public static void Log(string message)
+		public static void Log(object message)
 		{
-			myModEntry.Logger.Log(message);
+			myModEntry.Logger.Log($"[INFO] {message}");
 		}
 
-		public static void Warning(string message)
+		public static void Warning(object message)
 		{
-			myModEntry.Logger.Warning(message);
+			myModEntry.Logger.Warning($"{message}");
 		}
 
-		public static void Error(string message)
+		public static void Error(object message)
 		{
-			myModEntry.Logger.Error(message);
+			myModEntry.Logger.Error($"{message}");
 		}
 		
-		public static void Debug(string message)
+		public static void Debug(object message)
 		{
-			//todo debug setting
-			myModEntry.Logger.Log(message);
+			if(!MySettings.EnableDebugLog) return;
+			myModEntry.Logger.Log($"[DEBUG] {message}");
 		}
 	}
 }
