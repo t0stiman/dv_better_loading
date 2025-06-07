@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using DV;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
@@ -14,7 +15,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	private const CargoType loaderCargoType = CargoType.Coal;
 	private CargoType_v2 loaderCargoType_V2;
 	// How fast the cargo is loaded, in kg/s
-	private const int loadSpeed = 500;
+	private const int loadSpeed = 5000;
 	private LocoResourceModule coalModule;
 	private GameObject shuteOpeningMarker;
 	private Coroutine loadingUnloadingCoroutine;
@@ -24,6 +25,8 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	
 	//true if cargo is flowing into the car
 	private bool isLoading;
+	private Stopwatch stopwatch = new();
+	private bool timeWasFlowing;
 
 	private LayeredAudio audioSource;
 	private const ResourceFlowMode flowMode = ResourceFlowMode.Air;
@@ -50,7 +53,9 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 
 	private void Update()
 	{
+		//game paused?
 		if (!TimeUtil.IsFlowing) return;
+		
 		DoSound();
 		DoAnimations();
 	}
@@ -185,12 +190,30 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		
 		while (true)
 		{
-			yield return null;
-
-			while (!TimeUtil.IsFlowing) yield return null;
+			//game is paused?
+			if (TimeUtil.IsFlowing)
+			{
+				if (!timeWasFlowing)
+				{
+					stopwatch.Start();
+					timeWasFlowing = true;
+				}
+			}
+			else
+			{
+				if (timeWasFlowing)
+				{
+					//stop = pause
+					stopwatch.Stop();
+					timeWasFlowing = false;
+				}
+				
+				yield return null;
+				continue;
+			}
 			
-			// is there a car?
-			yield return null;
+			//wait for 2 frames
+			yield return 2; 
 			
 			var hitCount = Physics.RaycastNonAlloc(new Ray(shuteOpeningMarker.transform.position, Vector3.down), hits, 20f);
 			if (hitCount == 0) continue;
@@ -199,15 +222,15 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 			{
 				// Main.Debug($"hit: {hits[i].transform.name}, layer: {hits[i].transform.gameObject.layer}");
 				
-				carUnderLoader = hits[i].transform.GetComponentInParent<TrainCar>();
-				if (!carUnderLoader)
-				{
+				// carUnderLoader = hits[i].transform.GetComponentInParent<TrainCar>();
+				// if (!carUnderLoader)
+				// {
 					carUnderLoader = hits[i].transform.GetComponent<TrainCarInteriorObject>()?.actualTrainCar;
 					if (!carUnderLoader)
 					{
 						continue;
 					}
-				}
+				// }
 				
 				Main.Debug($"car under loader: {carUnderLoader.carType}");
 				break;
@@ -215,15 +238,13 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 
 			if (!carUnderLoader)
 			{
-				Main.Debug("Stoploading, there is no car");
-				StopLoading();
+				StopLoading("there is no car");
 				continue;
 			}
 			
 			if (!ShouldLoadCar(carUnderLoader))
 			{
-				Main.Debug("Stoploading, should not load car");
-				StopLoading();
+				StopLoading("should not load car");
 				continue;
 			}
 			
@@ -248,6 +269,8 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 			return false;
 		}
 			
+		Main.Debug($"LoadedCargoAmount: {logicCar.LoadedCargoAmount} capacity: {logicCar.capacity}");
+		
 		//full
 		if (logicCar.LoadedCargoAmount >= logicCar.capacity)
 		{
@@ -263,10 +286,15 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		StartLoading();
 		
 		var logicCar = carToLoad.logicCar;
-			
-		var kgToLoad = loadSpeed * Time.deltaTime;
+
+		stopwatch.Stop();
+		var kgToLoad = loadSpeed * (float)stopwatch.Elapsed.TotalSeconds;
+		stopwatch.Restart();
+		
 		// DV remembers the amount of cargo on a car in units, not kg. For example, the open hoppers can carry 1 unit of coal, which is 56000 kg.
-		var unitsToLoad = 1f / loaderCargoType_V2.massPerUnit * kgToLoad;
+		var unitsToLoad = kgToLoad / loaderCargoType_V2.massPerUnit;
+		
+		Main.Debug($"{nameof(DoLoadStep)}: {kgToLoad} kg, {unitsToLoad} units");
 			
 		// prevent overfill
 		if (logicCar.LoadedCargoAmount + unitsToLoad >= logicCar.capacity)
@@ -275,11 +303,8 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 			
 			//fill to capacity
 			unitsToLoad = logicCar.capacity - logicCar.LoadedCargoAmount;
-			
-			//todo DING sound?
+			Main.Debug($"{nameof(DoLoadStep)}: {unitsToLoad} units");
 		}
-		
-		Main.Debug($"{nameof(DoLoadStep)}: {kgToLoad} kg, {unitsToLoad} units");
 		
 		// this prevents an exception in LoadCargo
 		logicCar.CurrentCargoTypeInCar = CargoType.None;
@@ -301,13 +326,14 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		// 	raycastStartFlowEffect.Play();
 		
 		isLoading = true;
+		stopwatch = Stopwatch.StartNew();
 	}
 	
-	private void StopLoading()
+	private void StopLoading(string reason = "")
 	{
 		if(!isLoading) return;
 		
-		Main.Debug(nameof(StopLoading));
+		Main.Debug($"{nameof(StopLoading)}, {reason}");
 		
 		// foreach (ParticleSystem raycastFlowingEffect in raycastFlowingEffects)
 		// 	raycastFlowingEffect.Stop();
@@ -316,6 +342,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		// 	raycastStopFlowEffect.Play();
 		
 		isLoading = false;
+		stopwatch.Reset();
 	}
 	
 	

@@ -16,20 +16,28 @@ public class CargoModelController_OnCargoLoaded_Patch
 	private static bool Prefix(CargoModelController __instance, CargoType _)
 	{
 		if(_ != CargoType.Coal) return true;
-		
-		Main.Debug(nameof(CargoModelController_OnCargoLoaded_Patch));
-		
-		if (SingletonBehaviour<AudioManager>.Instance.cargoLoadUnload != null && __instance.trainCar.IsCargoLoadedUnloadedByMachine)
-			SingletonBehaviour<AudioManager>.Instance.cargoLoadUnload.Play(__instance.trainCar.transform.position, minDistance: 10f, parent: __instance.trainCar.transform);
-		
+
 		if (!__instance.currentCargoModel)
 		{
 			CreateCargoModel(__instance, _);
+		}
+
+		if (__instance.trainCar.LoadedCargoAmount >= __instance.trainCar.cargoCapacity)
+		{
+			PlayCarFullSound(__instance);
 		}
 		
 		//TODO change model height based on cargo amount
 
 		return false;
+	}
+
+	private static void PlayCarFullSound(CargoModelController __instance)
+	{
+		Main.Debug("Car is full, playing sound");
+		
+		SingletonBehaviour<AudioManager>.Instance.cargoLoadUnload?.Play(__instance.trainCar.transform.position,
+			minDistance: 10f, parent: __instance.trainCar.transform);
 	}
 
 	private static void CreateCargoModel(CargoModelController __instance, CargoType cargoType)

@@ -16,8 +16,6 @@ public class WarehouseMachineController_StartLoadSequence_Patch
 			return false;
 		}
 		
-		Main.Log("hello there");
-		
 		CoalLoader.Instance.EnterLoadingMode(__instance);
 
 		return false;
