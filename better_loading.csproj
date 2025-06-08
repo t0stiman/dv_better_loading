@@ -22,6 +22,7 @@
 		<Reference Include="Assembly-CSharp" />
 		<Reference Include="DV.LayeredAudio" />
 		<Reference Include="DV.NAudio" />
+		<Reference Include="DV.Railtrack" />
 		<Reference Include="DV.ThingTypes" />
 		<Reference Include="DV.Utils" />
 

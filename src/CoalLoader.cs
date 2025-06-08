@@ -1,10 +1,12 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Linq;
 using DV;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
 using UnityEngine;
+using VRTK;
 
 namespace better_loading;
 
@@ -20,8 +22,14 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	private GameObject shuteOpeningMarker;
 	private Coroutine loadingUnloadingCoroutine;
 	
+	private const int MY_LAYER = 23;
+	private LayerMask MY_LAYER_MASK = Extensions.LayerMaskFromInt(MY_LAYER);
+	
 	//position of the opening of the chute the coal falls out, relative to the coal loader object 
 	private readonly Vector3 chuteOpeningPositionLocal = new (-85.976f, 8.554f, 1.999f);
+	
+	//approximate vertical distance of the chute to the track
+	private const int CHUTE_HEIGHT = 10;
 	
 	//true if cargo is flowing into the car
 	private bool isLoading;
@@ -34,6 +42,8 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	private float curVolumeVelocity;
 	
 	private const string LOADING_SOUND_OBJECT_NAME = "LoadingSound";
+	
+	// private GameObject visualBox;
 
 	// private ParticleSystem[] plugStartFlowEffects;
 	// private ParticleSystem[] plugStopFlowEffects;
@@ -75,7 +85,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		else if (flowVolume > 0.0)
 		{
 			//decrease volume
-			flowVolume = Mathf.SmoothDamp(flowVolume, 0.0f, ref curVolumeVelocity, 0.15f);
+			flowVolume = Mathf.SmoothDamp(flowVolume, 0f, ref curVolumeVelocity, 0.15f);
 		}
 		
 		audioSource.Set(flowVolume);
@@ -155,7 +165,12 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 
 	private void CreateShuteMarker(Transform parent, Vector3 localPosition)
 	{
-		shuteOpeningMarker = new GameObject("shuteOpeningMarker");
+		shuteOpeningMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+		shuteOpeningMarker.name = "shuteOpeningMarker";
+		//invisible 
+		Destroy(shuteOpeningMarker.GetComponent<MeshRenderer>());
+		shuteOpeningMarker.layer = MY_LAYER;
+		
 		shuteOpeningMarker.transform.SetParent(parent);
 		shuteOpeningMarker.transform.localPosition = localPosition;
 		shuteOpeningMarker.transform.localEulerAngles = Vector3.zero;
@@ -184,10 +199,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		machineController.machineSound.Play(machineController.transform.position, parent: machineController.transform);
 		
 		machineController.LoadOrUnloadOngoing = true;
-		
-		TrainCar carUnderLoader = null;
-		var hits = new RaycastHit[5];
-		
+
 		while (true)
 		{
 			//game is paused?
@@ -213,34 +225,17 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 			}
 			
 			//wait for 2 frames
-			yield return 2; 
-			
-			var hitCount = Physics.RaycastNonAlloc(new Ray(shuteOpeningMarker.transform.position, Vector3.down), hits, 20f);
-			if (hitCount == 0) continue;
+			yield return 2;
 
-			for (int i = 0; i < hitCount; i++)
-			{
-				// Main.Debug($"hit: {hits[i].transform.name}, layer: {hits[i].transform.gameObject.layer}");
-				
-				// carUnderLoader = hits[i].transform.GetComponentInParent<TrainCar>();
-				// if (!carUnderLoader)
-				// {
-					carUnderLoader = hits[i].transform.GetComponent<TrainCarInteriorObject>()?.actualTrainCar;
-					if (!carUnderLoader)
-					{
-						continue;
-					}
-				// }
-				
-				Main.Debug($"car under loader: {carUnderLoader.carType}");
-				break;
-			}
+			var carUnderLoader = DetectCarUnderLoader();
 
 			if (!carUnderLoader)
 			{
 				StopLoading("there is no car");
 				continue;
 			}
+			
+			Main.Debug($"car under loader: {carUnderLoader.carType}");
 			
 			if (!ShouldLoadCar(carUnderLoader))
 			{
@@ -250,6 +245,51 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 			
 			DoLoadStep(carUnderLoader);
 		}
+	}
+	
+	private TrainCar DetectCarUnderLoader()
+	{
+		var carsOnLoadTrack = machineController.warehouseTrack.BogiesOnTrack()
+			.Select(bogie => bogie._car)
+			.Distinct()
+			.ToList();
+		
+		//no cars on track
+		if(!carsOnLoadTrack.Any()) return null;
+
+		var closestCar = carsOnLoadTrack
+			.OrderBy(car => Vector3.Distance(car.transform.position, shuteOpeningMarker.transform.position))
+			.First();
+
+		var carCollider = closestCar.carColliders.collisionRoot.GetComponent<BoxCollider>();
+		if (!carCollider)
+		{
+			Main.Error($"{nameof(DetectCarUnderLoader)} could not find BoxCollider on car {closestCar}");
+			return null;
+		}
+
+		var boxSize = new Vector3(carCollider.size.x, CHUTE_HEIGHT*1.5f, carCollider.size.z);
+		//extend up
+		var boxCenter = carCollider.transform.TransformPoint(carCollider.center) + new Vector3(0, boxSize.y/2f, 0);
+		var overlaps = Physics.OverlapBox(boxCenter, boxCenter/2f, carCollider.transform.rotation, MY_LAYER_MASK);
+
+		// if (!visualBox)
+		// {
+		// 	visualBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
+		// 	visualBox.name = "visualBox";
+		// 	Destroy(visualBox.GetComponent<BoxCollider>());
+		// }
+		// visualBox.transform.position = boxCenter;
+		// visualBox.transform.rotation = carCollider.transform.rotation;
+		// visualBox.transform.SetGlobalScale(boxSize);
+		
+		if (overlaps.FirstOrDefault(coll => coll.gameObject == shuteOpeningMarker.gameObject))
+		{
+			//this car is under the chute
+			return closestCar;
+		}
+		
+		return null;
 	}
 
 	private bool ShouldLoadCar(TrainCar aCar)

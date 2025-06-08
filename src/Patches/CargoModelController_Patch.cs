@@ -22,8 +22,10 @@ public class CargoModelController_OnCargoLoaded_Patch
 			CreateCargoModel(__instance, _);
 		}
 
-		if (__instance.trainCar.LoadedCargoAmount >= __instance.trainCar.cargoCapacity)
+		if (__instance.trainCar.IsCargoLoadedUnloadedByMachine &&
+		    __instance.trainCar.LoadedCargoAmount >= __instance.trainCar.cargoCapacity)
 		{
+			//TODO this does not work
 			PlayCarFullSound(__instance);
 		}
 		
