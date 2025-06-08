@@ -25,11 +25,12 @@ public class CargoModelController_OnCargoLoaded_Patch
 		if (__instance.trainCar.IsCargoLoadedUnloadedByMachine &&
 		    __instance.trainCar.LoadedCargoAmount >= __instance.trainCar.cargoCapacity)
 		{
-			//TODO this does not work
 			PlayCarFullSound(__instance);
 		}
 		
 		//TODO change model height based on cargo amount
+		
+		//TODO use IndicatorModelChanger & IndicatorPortReader
 
 		return false;
 	}

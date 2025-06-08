@@ -348,7 +348,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		
 		// this prevents an exception in LoadCargo
 		logicCar.CurrentCargoTypeInCar = CargoType.None;
-		logicCar.LoadCargo(unitsToLoad, loaderCargoType);
+		logicCar.LoadCargo(unitsToLoad, loaderCargoType, machineController.warehouseMachine);
 		
 		machineController.SetScreen(WarehouseMachineController.TextPreset.CarUpdated, true, carToLoad.ID, logicCar, loaderCargoType_V2);
 	}
