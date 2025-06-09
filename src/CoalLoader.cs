@@ -6,7 +6,6 @@ using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
 using UnityEngine;
-using VRTK;
 
 namespace better_loading;
 
@@ -16,8 +15,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	private WarehouseMachineController machineController;
 	private const CargoType loaderCargoType = CargoType.Coal;
 	private CargoType_v2 loaderCargoType_V2;
-	// How fast the cargo is loaded, in kg/s
-	private const int loadSpeed = 5000;
+	
 	private LocoResourceModule coalModule;
 	private GameObject shuteOpeningMarker;
 	private Coroutine loadingUnloadingCoroutine;
@@ -36,17 +34,17 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	private Stopwatch stopwatch = new();
 	private bool timeWasFlowing;
 
+	//sound
+	private const string LOADING_SOUND_OBJECT_NAME = "LoadingSound";
 	private LayeredAudio audioSource;
 	private const ResourceFlowMode flowMode = ResourceFlowMode.Air;
 	private float flowVolume;
 	private float curVolumeVelocity;
 	
-	private const string LOADING_SOUND_OBJECT_NAME = "LoadingSound";
-	
 	// private GameObject visualBox;
-
-	// private ParticleSystem[] plugStartFlowEffects;
-	// private ParticleSystem[] plugStopFlowEffects;
+	
+	//particle effects
+	// private ParticleSystem[] raycastFlowingEffects;
 	
 	public new static string AllowAutoCreate() => "[CoalLoader]";
 	
@@ -329,7 +327,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		var logicCar = carToLoad.logicCar;
 
 		stopwatch.Stop();
-		var kgToLoad = loadSpeed * (float)stopwatch.Elapsed.TotalSeconds;
+		var kgToLoad = Main.MySettings.LoadSpeed * (float)stopwatch.Elapsed.TotalSeconds;
 		stopwatch.Restart();
 		
 		// DV remembers the amount of cargo on a car in units, not kg. For example, the open hoppers can carry 1 unit of coal, which is 56000 kg.

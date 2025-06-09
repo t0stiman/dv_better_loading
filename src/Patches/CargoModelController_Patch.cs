@@ -71,7 +71,6 @@ public class CargoModelController_OnCargoLoaded_Patch
 		__instance.currentCargoModel.transform.localPosition = Vector3.zero;
 		__instance.currentCargoModel.transform.localRotation = Quaternion.identity;
 		
-		//todo collider?
 		__instance.trainColliders.SetupCargo(__instance.currentCargoModel);
 	}
 }
