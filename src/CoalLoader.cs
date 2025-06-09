@@ -264,7 +264,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		var carCollider = closestCar.carColliders.collisionRoot.GetComponent<BoxCollider>();
 		if (!carCollider)
 		{
-			Main.Error($"{nameof(DetectCarUnderLoader)} could not find BoxCollider on car {closestCar}");
+			//this happens on BE2
 			return null;
 		}
 
@@ -292,6 +292,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		return null;
 	}
 
+	//TODO don't load tenders
 	private bool ShouldLoadCar(TrainCar aCar)
 	{
 		if (!aCar.CanLoad(loaderCargoType_V2))

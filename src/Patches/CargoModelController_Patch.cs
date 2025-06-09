@@ -27,12 +27,23 @@ public class CargoModelController_OnCargoLoaded_Patch
 		{
 			PlayCarFullSound(__instance);
 		}
-		
-		//TODO change model height based on cargo amount
-		
-		//TODO use IndicatorModelChanger & IndicatorPortReader
 
+		UpdateCargoLevel(__instance);
+		
 		return false;
+	}
+
+	private const float MIN_COAL_LEVEL = -2.8f;
+	private const float MAX_COAL_LEVEL = 0;
+	
+	//TODO use IndicatorModelChanger & IndicatorPortReader
+	private static void UpdateCargoLevel(CargoModelController modelController)
+	{
+		var modelTransform = modelController.currentCargoModel.transform;
+		var loadLevel01 = modelController.trainCar.LoadedCargoAmount / modelController.trainCar.cargoCapacity;
+		var yLevel = Stuff.Map(loadLevel01, 0, 1, MIN_COAL_LEVEL, MAX_COAL_LEVEL);
+		
+		modelTransform.localPosition = new Vector3(modelTransform.localPosition.x, yLevel, modelTransform.localPosition.z);
 	}
 
 	private static void PlayCarFullSound(CargoModelController __instance)
