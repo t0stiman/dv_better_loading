@@ -44,7 +44,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	// private GameObject visualBox;
 	
 	//particle effects
-	// private ParticleSystem[] raycastFlowingEffects;
+	private ParticleSystem[] raycastFlowingEffects = {};
 	
 	public new static string AllowAutoCreate() => "[CoalLoader]";
 	
@@ -54,18 +54,12 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		loaderCargoType_V2 = loaderCargoType.ToV2();
 	}
 
-	private void OnEnable()
-	{
-		Main.Debug(nameof(CoalLoader)+".OnEnable()");
-	}
-
 	private void Update()
 	{
 		//game paused?
 		if (!TimeUtil.IsFlowing) return;
 		
 		DoSound();
-		DoAnimations();
 	}
 
 	private void DoSound()
@@ -87,31 +81,6 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		}
 		
 		audioSource.Set(flowVolume);
-	}
-
-	private void DoAnimations()
-	{
-		// if (isDraining != isDraining) //todo wasdraining?
-		// {
-		// 	if (isDraining)
-		// 	{
-		// 		System.Action drainStopped = DrainStopped;
-		// 		if (drainStopped != null)
-		// 			drainStopped();
-		// 	}
-		// 	else
-		// 	{
-		// 		System.Action drainStarted = DrainStarted;
-		// 		if (drainStarted != null)
-		// 			drainStarted();
-		// 	}
-		// }
-	}
-
-	private void OnDisable()
-	{
-		//TODO prevent unloading?
-		Main.Debug(nameof(CoalLoader)+".OnDisable()");
 	}
 	
 	public void EnterLoadingMode(WarehouseMachineController warehouseMachineController)
@@ -140,10 +109,28 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		}
 
 		InitializeAudioSource(coalLoader.transform);
-
-		// Instantiate(coalModule.plugFlowingEffects[(int)flowMode].gameObject, chuteOpeningPosition, Quaternion.identity);
+		InitializeLoadingEffects(coalLoader.transform);
 		
 		loadingUnloadingCoroutine = StartCoroutine(Loading());
+	}
+
+	private void InitializeLoadingEffects(Transform coalLoader)
+	{
+		var effectsObjectName = "effectsObject";
+		if (coalLoader.GetChild(effectsObjectName))
+		{
+			return;
+		}
+		
+		var effectsObject = Instantiate(coalModule.raycastFlowingEffects[0].transform.parent, shuteOpeningMarker.transform.position, Quaternion.identity);
+		effectsObject.SetParent(coalLoader, true);
+		effectsObject.name = effectsObjectName;
+		raycastFlowingEffects = effectsObject.GetComponentsInChildren<ParticleSystem>();
+
+		if (!raycastFlowingEffects.Any())
+		{
+			Main.Error("no effects");
+		}
 	}
 
 	private void InitializeAudioSource(Transform coalLoader)
@@ -357,13 +344,12 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		if(isLoading) return;
 		
 		Main.Debug(nameof(StartLoading));
-		
-		// foreach (ParticleSystem raycastFlowingEffect in raycastFlowingEffects)
-		// 	raycastFlowingEffect.Play();
-		// 	
-		// foreach (ParticleSystem raycastStartFlowEffect in raycastStartFlowEffects)
-		// 	raycastStartFlowEffect.Play();
-		
+
+		foreach (ParticleSystem raycastFlowingEffect in raycastFlowingEffects)
+		{
+			raycastFlowingEffect.Play();
+		}
+
 		isLoading = true;
 		stopwatch = Stopwatch.StartNew();
 	}
@@ -374,11 +360,10 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 		
 		Main.Debug($"{nameof(StopLoading)}, {reason}");
 		
-		// foreach (ParticleSystem raycastFlowingEffect in raycastFlowingEffects)
-		// 	raycastFlowingEffect.Stop();
-		// 	
-		// foreach (ParticleSystem raycastStopFlowEffect in raycastStopFlowEffects)
-		// 	raycastStopFlowEffect.Play();
+		foreach (ParticleSystem raycastFlowingEffect in raycastFlowingEffects)
+		{
+			raycastFlowingEffect.Stop();
+		}
 		
 		isLoading = false;
 		stopwatch.Reset();
