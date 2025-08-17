@@ -20,7 +20,7 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	private GameObject shuteOpeningMarker;
 	private Coroutine loadingUnloadingCoroutine;
 	
-	private const int MY_LAYER = 23;
+	private const int MY_LAYER = 18; //18 is not used by DV. See DV.Layers.Layers.DVLayer .
 	private LayerMask MY_LAYER_MASK = Extensions.LayerMaskFromInt(MY_LAYER);
 	
 	//position of the opening of the chute the coal falls out, relative to the coal loader object 
@@ -50,7 +50,6 @@ public class CoalLoader: SingletonBehaviour<CoalLoader>
 	
 	private void Start()
 	{
-		Main.Debug(nameof(CoalLoader)+".Start()");
 		loaderCargoType_V2 = loaderCargoType.ToV2();
 	}
 
