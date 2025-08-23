@@ -21,6 +21,7 @@
 		<!-- Derail Valley -->
 		<Reference Include="Assembly-CSharp" />
 		<Reference Include="DV.LayeredAudio" />
+		<Reference Include="DV.Localization" />
 		<Reference Include="DV.NAudio" />
 		<Reference Include="DV.Railtrack" />
 		<Reference Include="DV.ThingTypes" />
@@ -36,5 +37,6 @@
 		<Reference Include="UnityEngine.ParticleSystemModule" />
 		<Reference Include="UnityEngine.PhysicsModule" />
 		<Reference Include="UnityEngine.IMGUIModule" />
+		<Reference Include="UnityEngine.UI" />
 	</ItemGroup>
 </Project>

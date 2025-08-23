@@ -1,6 +1,8 @@
-﻿using DV;
+﻿using System.Linq;
+using DV;
 using DV.ThingTypes;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace better_loading;
 
@@ -17,5 +19,34 @@ public static class Extensions
 	public static LayerMask LayerMaskFromInt(int layer)
 	{
 		return 1 << layer;
+	}
+
+	public static Transform[] FindAllByName(this Scene scene, string name)
+	{
+		return scene.GetRootGameObjects()
+			.SelectMany(rootObject => rootObject.transform.FindChildrenByName(name))
+			.ToArray();
+	}
+	
+	public static Transform[] FindChildrenByName(this Transform transform, string name)
+	{
+		return transform.GetComponentsInChildren<Transform>(true)
+			.Where(anotherTransform => anotherTransform.name == name)
+			.ToArray();
+	}
+	
+	public static Transform FindChildByName(this Transform transform, string name)
+	{
+		return transform.GetComponentsInChildren<Transform>(true).FirstOrDefault(anotherTransform => anotherTransform.name == name);
+	}
+	
+	public static GameObject FindChildByName(this GameObject gameObject, string name)
+	{
+		return gameObject.transform.FindChildByName(name).gameObject;
+	}
+
+	public static bool IsSupportedBulkType(this CargoType cargoType)
+	{
+		return cargoType == CargoType.Coal;
 	}
 }

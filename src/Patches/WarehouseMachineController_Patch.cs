@@ -1,25 +1,33 @@
-﻿using HarmonyLib;
+﻿using System.Linq;
+using HarmonyLib;
+using UnityEngine;
 
 namespace better_loading.Patches;
 
 [HarmonyPatch(typeof(WarehouseMachineController))]
-[HarmonyPatch(nameof(WarehouseMachineController.StartLoadSequence))]
-public class WarehouseMachineController_StartLoadSequence_Patch 
+[HarmonyPatch(nameof(WarehouseMachineController.Start))]
+public class WarehouseMachineController_Awake_Patch 
 {
-	private static bool Prefix(ref WarehouseMachineController __instance)
+	private static void Postfix(WarehouseMachineController __instance)
 	{
-		//TODO dit is niet goed
-		// if(!__instance.supportedCargoTypes.Contains(CargoType.Coal)) return true;
-		
-		if (__instance.loadUnloadCoro != null || __instance.activateExternallyCoro != null)
-		{
-			return false;
-		}
-		
-		CoalLoader.Instance.EnterLoadingMode(__instance);
+		var cargoType = __instance.supportedCargoTypes.FirstOrDefault(ct => ct.IsSupportedBulkType());
+		if(cargoType == default) return;
 
-		return false;
+		var model = __instance.transform.FindChildByName("WarehouseMachine model");
+		
+		var copy = Object.Instantiate(
+			__instance.gameObject,
+			__instance.transform.position + model.forward * -2,
+			__instance.transform.rotation,
+			__instance.transform.parent
+		);
+		
+		copy.name = __instance.gameObject.name.Replace("(Clone)", "").Replace("Warehouse", "Bulk");
+		
+		var bulkLoader = copy.AddComponent<BulkLoader>();
+		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
+		bulkLoader.PreStart(__instance, clonedMachineController, cargoType);
+		
+		Object.Destroy(clonedMachineController);
 	}
 }
-
-//TODO ActivateExternallyCoro

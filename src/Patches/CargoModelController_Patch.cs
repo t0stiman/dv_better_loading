@@ -50,8 +50,12 @@ public class CargoModelController_OnCargoLoaded_Patch
 	{
 		Main.Debug("Car is full, playing sound");
 		
-		SingletonBehaviour<AudioManager>.Instance.cargoLoadUnload?.Play(__instance.trainCar.transform.position,
-			minDistance: 10f, parent: __instance.trainCar.transform);
+		//todo ding sound
+		SingletonBehaviour<AudioManager>.Instance.cargoLoadUnload?.Play(
+			__instance.trainCar.transform.position,
+			minDistance: 10f,
+			parent: __instance.trainCar.transform
+		);
 	}
 
 	private static void CreateCargoModel(CargoModelController __instance, CargoType cargoType)
