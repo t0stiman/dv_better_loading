@@ -15,7 +15,9 @@ namespace better_loading;
 public class BulkLoader: MonoBehaviour
 {
 	private WarehouseMachineController machineController;
+	private RailTrackBogiesOnTrack bogiesOnTrackComponent;
 	private bool start2Done = false;
+	private Coroutine loadUnloadCoro;
 	
 	private CargoType cargoType;
 	private CargoType_v2 cargoTypeV2;
@@ -24,8 +26,8 @@ public class BulkLoader: MonoBehaviour
 	private static LocoResourceModule tenderCoalModule;
 	private GameObject shuteOpeningMarker;
 	
-	private const int MY_LAYER = 18; //18 is not used by DV. See DV.Layers.Layers.DVLayer .
-	private static readonly LayerMask MY_LAYER_MASK = Extensions.LayerMaskFromInt(MY_LAYER);
+	private const int TRAINCAR_LAYER = (int)Layers.DVLayer.Train_Big_Collider;
+	private static readonly LayerMask TRAINCAR_MASK = Extensions.LayerMaskFromInt(TRAINCAR_LAYER);
 	
 	//approximate vertical distance of the chute to the track
 	private const int CHUTE_HEIGHT = 10;
@@ -35,7 +37,6 @@ public class BulkLoader: MonoBehaviour
 	private Stopwatch stopwatch = new();
 	private bool timeWasFlowing;
 	private bool stopLoadRequested = false;
-	private bool currentCoroutineIsOurs = false;
 
 	//sound
 	private LayeredAudio audioSource;
@@ -49,6 +50,13 @@ public class BulkLoader: MonoBehaviour
 	//text
 	private TextMeshPro displayTitleText;
 	private TextMeshPro displayText;
+	
+	//box
+	private GameObject debugBox;
+	private readonly Collider[] overlapBoxResults = new Collider[2];
+	private Vector3 overlapBoxCenter;
+	private Vector3 overlapBoxHalfSize;
+	private Quaternion overlapBoxRotation;
 
 	#region setup
 
@@ -93,13 +101,41 @@ public class BulkLoader: MonoBehaviour
 
 		InitializeAudioSource(industryCoal.transform);
 		InitializeLoadingEffects(industryCoal.transform);
+		
+		SetupOverlapBox(industryCoal.transform);
+		
+		//this also doesn't work if i put it in Start()
+		bogiesOnTrackComponent = machineController.warehouseTrack.GetComponent<RailTrackBogiesOnTrack>();
+		if (!bogiesOnTrackComponent)
+		{
+			Main.Error($"Could not get {nameof(RailTrackBogiesOnTrack)}");
+		}
 
 		start2Done = true;
 	}
 
+	private void SetupOverlapBox(Transform industryCoal)
+	{
+		overlapBoxCenter = shuteOpeningMarker.transform.position - new Vector3(0, CHUTE_HEIGHT / 2f, 0);
+		var overlapBoxSize = new Vector3(0.1f, CHUTE_HEIGHT, 0.1f);
+		overlapBoxHalfSize = overlapBoxSize/2f;
+		overlapBoxRotation = industryCoal.rotation;
+		
+		if (Main.MySettings.EnableDebugBox)
+		{
+			debugBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
+			debugBox.name = "debugBox";
+			Destroy(debugBox.GetComponent<BoxCollider>());
+
+			debugBox.transform.position = overlapBoxCenter;
+			debugBox.transform.rotation = industryCoal.rotation;
+			debugBox.transform.localScale = overlapBoxSize; //localscale == globalscale because the box has no parent
+		}
+	}
+
 	private void SetupTexts()
 	{
-		ChangeText(gameObject.FindChildByName("TextTitle"), "coal\nloader");
+		ChangeText(gameObject.FindChildByName("TextTitle"), "Coal\nloader");
 		ChangeText(gameObject.FindChildByName("TextUnload"), "Stop");
 		ChangeText(gameObject.FindChildByName("TextLoad"), "Start");
 
@@ -119,7 +155,7 @@ public class BulkLoader: MonoBehaviour
 		effectsObject.name = "effectsObject";
 		raycastFlowingEffects = effectsObject.GetComponentsInChildren<ParticleSystem>();
 
-		if (!raycastFlowingEffects.Any())
+		if (raycastFlowingEffects.Length == 0)
 		{
 			Main.Error("no effects");
 		}
@@ -142,7 +178,7 @@ public class BulkLoader: MonoBehaviour
 		shuteOpeningMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
 		shuteOpeningMarker.name = "shuteOpeningMarker";
 		//invisible 
-		shuteOpeningMarker.GetComponent<MeshRenderer>().enabled = Main.MySettings.EnableDebugLog;
+		shuteOpeningMarker.GetComponent<MeshRenderer>().enabled = false;
 		
 		shuteOpeningMarker.transform.SetParent(parent);
 		shuteOpeningMarker.transform.localPosition = new Vector3(-85.976f, 8.554f, 1.999f);
@@ -164,7 +200,6 @@ public class BulkLoader: MonoBehaviour
 	}
 	
 	#endregion
-	
 
 	private void OnLeverPositionChange(int positionState)
 	{
@@ -181,17 +216,16 @@ public class BulkLoader: MonoBehaviour
 
 	private void StartLoadingSequence()
 	{
-		if (machineController.loadUnloadCoro != null || machineController.activateExternallyCoro != null)
+		if (loadUnloadCoro != null)
 			return;
 		
 		Start2();
-		machineController.loadUnloadCoro = StartCoroutine(Loading());
-		currentCoroutineIsOurs = true;
+		loadUnloadCoro = StartCoroutine(Loading());
 	}
 	
 	private void StopLoadingSequence()
 	{
-		if (!currentCoroutineIsOurs || machineController.loadUnloadCoro == null)
+		if (loadUnloadCoro == null)
 			return;
 
 		stopLoadRequested = true;
@@ -238,13 +272,10 @@ public class BulkLoader: MonoBehaviour
 	{
 		Main.Debug(nameof(Loading));
 		
-		machineController.SetScreen(WarehouseMachineController.TextPreset.ClearDesc);
-		displayTitleText.text = $"Loading {cargoNameLocalized}";
+		displayTitleText.text = $"{cargoNameLocalized} loading enabled";
 		displayText.text = "Slowly drive the train under the chute";
 		
 		machineController.machineSound.Play(transform.position, parent: transform);
-		
-		machineController.LoadOrUnloadOngoing = true;
 
 		while (true)
 		{
@@ -273,16 +304,14 @@ public class BulkLoader: MonoBehaviour
 			//wait for 2 frames
 			yield return 2;
 
-			var carUnderLoader = DetectCarUnderLoader();
-
 			if (stopLoadRequested)
 			{
 				StopLoading("stop load requested");
 				stopLoadRequested = false;
 				break;
 			}
-
-			if (!carUnderLoader)
+			
+			if (!IsCarUnderLoader(out TrainCar carUnderLoader))
 			{
 				StopLoading("there is no car");
 				continue;
@@ -298,47 +327,52 @@ public class BulkLoader: MonoBehaviour
 			
 			DoLoadStep(carUnderLoader);
 		}
-		
-		currentCoroutineIsOurs = false;
 	}
-	
+
 	//todo
-	private TrainCar DetectCarUnderLoader()
+	private bool IsCarUnderLoader(out TrainCar carUnderLoader)
 	{
-		var carsOnLoadTrack = machineController.warehouseTrack.BogiesOnTrack()
-			.Select(bogie => bogie._car)
-			.Distinct()
-			.ToList();
+		carUnderLoader = null;
+		var bogiesOnTrack = bogiesOnTrackComponent.bogiesOnTrack;
 		
 		//no cars on track
-		if(!carsOnLoadTrack.Any()) return null;
+		if (bogiesOnTrack.Count == 0) return false;
+		
+		// var carsOnLoadTrack = bogiesOnTrack
+		// 	.Select(bogie => bogie._car)
+		// 	.Distinct()
+		// 	.ToList();
+		
+		//todo
+		// ForceCollidersActive()
 
-		var closestCar = carsOnLoadTrack
-			.OrderBy(car => Vector3.Distance(car.transform.position, shuteOpeningMarker.transform.position))
-			.First();
+		// var carCollider = closestCar.carColliders.collisionRoot.GetComponent<BoxCollider>();
+		// if (!carCollider)
+		// {
+		// 	//this happens on BE2
+		// 	return null;
+		// }
+		
+		//todo layer and force active?
+		var resultsCount = Physics.OverlapBoxNonAlloc(overlapBoxCenter, overlapBoxHalfSize, overlapBoxResults, overlapBoxRotation, TRAINCAR_MASK);
 
-		var carCollider = closestCar.carColliders.collisionRoot.GetComponent<BoxCollider>();
-		if (!carCollider)
+		for (int i = 0; i < resultsCount; i++)
 		{
-			//this happens on BE2
-			return null;
+			Main.Debug($"{i} {overlapBoxResults[i].gameObject.GetPath()}");
 		}
 
-		var boxSize = new Vector3(carCollider.size.x, CHUTE_HEIGHT*1.5f, carCollider.size.z);
-		//extend up
-		var boxCenter = carCollider.transform.TransformPoint(carCollider.center) + new Vector3(0, boxSize.y/2f, 0);
-		var overlaps = Physics.OverlapBox(boxCenter, boxCenter/2f, carCollider.transform.rotation, MY_LAYER_MASK);
-		
-		if (overlaps.FirstOrDefault(coll => coll.gameObject == shuteOpeningMarker.gameObject))
+		for (int i = 0; i < resultsCount; i++)
 		{
-			//this car is under the chute
-			return closestCar;
+			if (!overlapBoxResults[i].transform.parent.TryGetComponent<TrainCar>(out var trainCar)) continue;
+			carUnderLoader = trainCar;
+			return true;
 		}
 		
-		return null;
+		return false;
 	}
 
 	//TODO don't load tenders
+	//TODO check for job
 	private bool ShouldLoadCar(TrainCar aCar)
 	{
 		if (!aCar.CanLoad(cargoTypeV2))

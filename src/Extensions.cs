@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using DV;
 using DV.ThingTypes;
 using UnityEngine;
@@ -45,8 +47,15 @@ public static class Extensions
 		return gameObject.transform.FindChildByName(name).gameObject;
 	}
 
+	private static IReadOnlyList<CargoType> supportedBulkTypes { get; } = new List<CargoType>
+	{
+		CargoType.Coal,
+		// CargoType.IronOre
+		//graan
+	};
+	
 	public static bool IsSupportedBulkType(this CargoType cargoType)
 	{
-		return cargoType == CargoType.Coal;
+		return supportedBulkTypes.Contains(cargoType);
 	}
 }

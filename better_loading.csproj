@@ -21,6 +21,7 @@
 		<!-- Derail Valley -->
 		<Reference Include="Assembly-CSharp" />
 		<Reference Include="DV.LayeredAudio" />
+		<Reference Include="DV.Layers" />
 		<Reference Include="DV.Localization" />
 		<Reference Include="DV.NAudio" />
 		<Reference Include="DV.Railtrack" />

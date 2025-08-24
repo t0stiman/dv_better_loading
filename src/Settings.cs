@@ -6,6 +6,7 @@ namespace better_loading;
 public class Settings: UnityModManager.ModSettings
 {
 	public bool EnableDebugLog = false;
+	public bool EnableDebugBox = false;
 	
 	//how fast the cargo is loaded, in kg/s
 	public int LoadSpeed = CONVENIENT_SPEED;
@@ -44,6 +45,7 @@ public class Settings: UnityModManager.ModSettings
 		GUILayout.Space(20f);
 		
 		EnableDebugLog = GUILayout.Toggle(EnableDebugLog, "Enable debug logging");
+		EnableDebugBox = GUILayout.Toggle(EnableDebugBox, "Enable debug box");
 	}
 
 	public override void Save(UnityModManager.ModEntry modEntry)

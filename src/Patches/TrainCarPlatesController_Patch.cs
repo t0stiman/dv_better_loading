@@ -15,8 +15,8 @@ public class TrainCarPlatesController_UpdateCargoData_Patch
 	private static void Postfix(TrainCarPlatesController __instance)
 	{
 		if (
-			// __instance.trainCar.LoadedCargo != CargoType.Coal ||
-		    __instance.trainCar.logicCar == null)
+			!__instance.trainCar.LoadedCargo.IsSupportedBulkType() ||
+			__instance.trainCar.logicCar == null)
 		{
 			return;
 		}
