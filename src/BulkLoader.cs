@@ -17,7 +17,9 @@ public class BulkLoader: MonoBehaviour
 	private WarehouseMachineController machineController;
 	private RailTrackBogiesOnTrack bogiesOnTrackComponent;
 	private bool start2Done = false;
+	
 	private Coroutine loadUnloadCoro;
+	private bool coroutineIsRunning = false;
 	
 	private CargoType cargoType;
 	private CargoType_v2 cargoTypeV2;
@@ -36,7 +38,6 @@ public class BulkLoader: MonoBehaviour
 	private bool cargoIsFlowing;
 	private Stopwatch stopwatch = new();
 	private bool timeWasFlowing;
-	private bool stopLoadRequested = false;
 
 	//sound
 	private LayeredAudio audioSource;
@@ -216,19 +217,26 @@ public class BulkLoader: MonoBehaviour
 
 	private void StartLoadingSequence()
 	{
-		if (loadUnloadCoro != null)
+		if (coroutineIsRunning)
 			return;
 		
 		Start2();
 		loadUnloadCoro = StartCoroutine(Loading());
+		coroutineIsRunning = true;
+		if (debugBox)
+		{
+			debugBox.SetActive(true);
+		}
 	}
 	
 	private void StopLoadingSequence()
 	{
-		if (loadUnloadCoro == null)
+		if (!coroutineIsRunning)
 			return;
-
-		stopLoadRequested = true;
+		
+		coroutineIsRunning = false;
+		StopCoroutine(loadUnloadCoro);
+		StopLoading("lever stop");
 	}
 	
 	private void SetIdleText()
@@ -301,16 +309,6 @@ public class BulkLoader: MonoBehaviour
 				continue;
 			}
 			
-			//wait for 2 frames
-			yield return 2;
-
-			if (stopLoadRequested)
-			{
-				StopLoading("stop load requested");
-				stopLoadRequested = false;
-				break;
-			}
-			
 			if (!IsCarUnderLoader(out TrainCar carUnderLoader))
 			{
 				StopLoading("there is no car");
@@ -328,8 +326,7 @@ public class BulkLoader: MonoBehaviour
 			DoLoadStep(carUnderLoader);
 		}
 	}
-
-	//todo
+	
 	private bool IsCarUnderLoader(out TrainCar carUnderLoader)
 	{
 		carUnderLoader = null;
