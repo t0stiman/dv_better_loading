@@ -10,8 +10,8 @@ public class WarehouseMachineController_Awake_Patch
 {
 	private static void Postfix(WarehouseMachineController __instance)
 	{
-		var cargoType = __instance.supportedCargoTypes.FirstOrDefault(ct => ct.IsSupportedBulkType());
-		if(cargoType == default) return;
+		var cargoTypes = __instance.supportedCargoTypes.Where(ct => ct.IsSupportedBulkType()).ToArray();
+		if(cargoTypes.Length == 0) return;
 
 		var model = __instance.transform.FindChildByName("WarehouseMachine model");
 		
@@ -26,7 +26,7 @@ public class WarehouseMachineController_Awake_Patch
 		
 		var bulkLoader = copy.AddComponent<BulkLoader>();
 		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
-		bulkLoader.PreStart(__instance, clonedMachineController, cargoType);
+		bulkLoader.PreStart(__instance, clonedMachineController, cargoTypes);
 		
 		Object.Destroy(clonedMachineController);
 	}

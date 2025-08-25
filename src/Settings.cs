@@ -8,6 +8,8 @@ public class Settings: UnityModManager.ModSettings
 	public bool EnableDebugLog = false;
 	public bool EnableDebugBox = false;
 	
+	//todo load speed for other cargos
+	
 	//how fast the cargo is loaded, in kg/s
 	public int LoadSpeed = CONVENIENT_SPEED;
 	public LoadSpeedPreset MyLoadSpeedPreset = LoadSpeedPreset.Convenient;
@@ -23,7 +25,7 @@ public class Settings: UnityModManager.ModSettings
 		Custom
 	} 
 	
-	public void Draw(UnityModManager.ModEntry modEntry)
+	public void Draw(UnityModManager.ModEntry _)
 	{
 		GUILayout.Label("Loading speed, in kg/s");
 		if (GUILayout.Toggle(MyLoadSpeedPreset == LoadSpeedPreset.Convenient, $"Convenient ({CONVENIENT_SPEED})"))

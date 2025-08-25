@@ -20,11 +20,8 @@ public class TrainCarPlatesController_UpdateCargoData_Patch
 		{
 			return;
 		}
-
-		var capacity = __instance.trainCar.logicCar.capacity;
-		var loadedCargoAmount = __instance.trainCar.logicCar.LoadedCargoAmount;
 		
-		__instance.cargoMassText += $", {Mathf.RoundToInt(loadedCargoAmount / capacity * 100f)}%";
+		__instance.cargoMassText += $", {__instance.trainCar.GetFillPercent()}%";
 		__instance.RefreshDerivedCargoJobData();
 	}
 }

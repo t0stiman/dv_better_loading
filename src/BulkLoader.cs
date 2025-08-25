@@ -1,9 +1,11 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Linq;
 using DV;
 using DV.CashRegister;
 using DV.Localization;
+using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using TMPro;
@@ -21,15 +23,14 @@ public class BulkLoader: MonoBehaviour
 	private Coroutine loadUnloadCoro;
 	private bool coroutineIsRunning = false;
 	
-	private CargoType cargoType;
-	private CargoType_v2 cargoTypeV2;
-	private string cargoNameLocalized => LocalizationAPI.L(cargoTypeV2.localizationKeyFull);
+	private CargoType[] cargoTypes;
+	private CargoType_v2[] cargoTypesV2;
 	
 	private static LocoResourceModule tenderCoalModule;
 	private GameObject shuteOpeningMarker;
 	
 	private const int TRAINCAR_LAYER = (int)Layers.DVLayer.Train_Big_Collider;
-	private static readonly LayerMask TRAINCAR_MASK = Extensions.LayerMaskFromInt(TRAINCAR_LAYER);
+	private static readonly LayerMask TRAINCAR_MASK = MiscExtensions.LayerMaskFromInt(TRAINCAR_LAYER);
 	
 	//approximate vertical distance of the chute to the track
 	private const int CHUTE_HEIGHT = 10;
@@ -61,11 +62,11 @@ public class BulkLoader: MonoBehaviour
 
 	#region setup
 
-	public void PreStart(WarehouseMachineController vanillaMachineController, WarehouseMachineController clonedMachineController, CargoType aCargoType)
+	public void PreStart(WarehouseMachineController vanillaMachineController, WarehouseMachineController clonedMachineController, CargoType[] cargoTypes_)
 	{
 		machineController = vanillaMachineController;
-		cargoType = aCargoType;
-		cargoTypeV2 = aCargoType.ToV2();
+		cargoTypes = cargoTypes_;
+		cargoTypesV2 = cargoTypes_.Select(v1 => v1.ToV2()).ToArray();
 		
 		displayTitleText = clonedMachineController.displayTitleText;
 		displayText = clonedMachineController.displayText;
@@ -125,18 +126,19 @@ public class BulkLoader: MonoBehaviour
 		if (Main.MySettings.EnableDebugBox)
 		{
 			debugBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
-			debugBox.name = "debugBox";
+			debugBox.name = nameof(debugBox);
 			Destroy(debugBox.GetComponent<BoxCollider>());
 
 			debugBox.transform.position = overlapBoxCenter;
 			debugBox.transform.rotation = industryCoal.rotation;
-			debugBox.transform.localScale = overlapBoxSize; //localscale == globalscale because the box has no parent
+			debugBox.transform.localScale = overlapBoxSize; //localscale == actual size
+			debugBox.transform.SetParent(industryCoal);
 		}
 	}
 
 	private void SetupTexts()
 	{
-		ChangeText(gameObject.FindChildByName("TextTitle"), "Coal\nloader");
+		ChangeText(gameObject.FindChildByName("TextTitle"), "Bulk cargo\ntransfer");
 		ChangeText(gameObject.FindChildByName("TextUnload"), "Stop");
 		ChangeText(gameObject.FindChildByName("TextLoad"), "Start");
 
@@ -153,7 +155,7 @@ public class BulkLoader: MonoBehaviour
 	{
 		var effectsObject = Instantiate(tenderCoalModule.raycastFlowingEffects[0].transform.parent, shuteOpeningMarker.transform.position, Quaternion.identity);
 		effectsObject.SetParent(coalLoader, true);
-		effectsObject.name = "effectsObject";
+		effectsObject.name = nameof(effectsObject);
 		raycastFlowingEffects = effectsObject.GetComponentsInChildren<ParticleSystem>();
 
 		if (raycastFlowingEffects.Length == 0)
@@ -241,7 +243,7 @@ public class BulkLoader: MonoBehaviour
 	
 	private void SetIdleText()
 	{
-		displayTitleText.SetText($"This machine loads {cargoNameLocalized}");
+		displayTitleText.SetText($"This machine loads {cargoTypesV2.Select(cargoType => cargoType.LocalizedName()).Join(", ")}");
 		displayText.SetText("Move the handle to start");
 	}
 	
@@ -278,15 +280,19 @@ public class BulkLoader: MonoBehaviour
 
 	public IEnumerator Loading()
 	{
+		const float stopLoadingWaitTime = 0.2f;
+		
 		Main.Debug(nameof(Loading));
 		
-		displayTitleText.text = $"{cargoNameLocalized} loading enabled";
+		displayTitleText.text = $"Machine enabled"; //todo
 		displayText.text = "Slowly drive the train under the chute";
 		
 		machineController.machineSound.Play(transform.position, parent: transform);
 
 		while (true)
 		{
+			yield return null;
+			
 			//game is paused?
 			if (TimeUtil.IsFlowing)
 			{
@@ -305,25 +311,48 @@ public class BulkLoader: MonoBehaviour
 					timeWasFlowing = false;
 				}
 				
-				yield return null;
 				continue;
 			}
 			
 			if (!IsCarUnderLoader(out TrainCar carUnderLoader))
 			{
 				StopLoading("there is no car");
+				yield return WaitFor.Seconds(stopLoadingWaitTime);
 				continue;
 			}
 			
 			Main.Debug($"car under loader: {carUnderLoader.carType}");
-			
-			if (!ShouldLoadCar(carUnderLoader))
+
+			if (!TryGetTask(carUnderLoader, out WarehouseTask task))
 			{
-				StopLoading("should not load car");
+				StopLoading("has no active task");
+				yield return WaitFor.Seconds(stopLoadingWaitTime);
 				continue;
 			}
 			
-			DoLoadStep(carUnderLoader);
+			var taskCargoType = task.cargoType;
+
+			if (!cargoTypes.Contains(taskCargoType))
+			{
+				StopLoading($"Can't load {taskCargoType} because it is unsupported by warehouse machine");
+				yield return WaitFor.Seconds(stopLoadingWaitTime);
+				continue;
+			}
+		
+			//todo readyForMachine?
+		
+			var logicCar = carUnderLoader.logicCar;
+			Main.Debug($"LoadedCargoAmount: {logicCar.LoadedCargoAmount} capacity: {logicCar.capacity}");
+		
+			//full
+			if (logicCar.LoadedCargoAmount >= logicCar.capacity)
+			{
+				StopLoading("can't load because it is full");
+				yield return WaitFor.Seconds(stopLoadingWaitTime);
+				continue;
+			}
+			
+			DoLoadStep(carUnderLoader, taskCargoType);
 		}
 	}
 	
@@ -341,7 +370,7 @@ public class BulkLoader: MonoBehaviour
 		// 	.ToList();
 		
 		//todo
-		// ForceCollidersActive()
+		// ForceCollidersActive() ?
 
 		// var carCollider = closestCar.carColliders.collisionRoot.GetComponent<BoxCollider>();
 		// if (!carCollider)
@@ -350,13 +379,7 @@ public class BulkLoader: MonoBehaviour
 		// 	return null;
 		// }
 		
-		//todo layer and force active?
 		var resultsCount = Physics.OverlapBoxNonAlloc(overlapBoxCenter, overlapBoxHalfSize, overlapBoxResults, overlapBoxRotation, TRAINCAR_MASK);
-
-		for (int i = 0; i < resultsCount; i++)
-		{
-			Main.Debug($"{i} {overlapBoxResults[i].gameObject.GetPath()}");
-		}
 
 		for (int i = 0; i < resultsCount; i++)
 		{
@@ -368,49 +391,39 @@ public class BulkLoader: MonoBehaviour
 		return false;
 	}
 
-	//TODO don't load tenders
-	//TODO check for job
-	private bool ShouldLoadCar(TrainCar aCar)
+	private bool TryGetTask(TrainCar aCar, out WarehouseTask task)
 	{
-		if (!aCar.CanLoad(cargoTypeV2))
+		if (aCar.logicCar == null)
 		{
-			Main.Debug($"{aCar.carType} can't contain {cargoTypeV2}");
+			task = null;
 			return false;
 		}
+		
+		foreach (var aTask in machineController.warehouseMachine.currentTasks)
+		{
+			if(!aTask.cars.Contains(aCar.logicCar)) continue;
 			
-		var logicCar = aCar.logicCar;
-
-		var cargoInCar = logicCar.CurrentCargoTypeInCar;
-		if (cargoInCar != CargoType.None && cargoInCar.ToV2() != cargoTypeV2)
-		{
-			Main.Debug($"{aCar.carType} can't load {cargoTypeV2} because it already contains {cargoInCar}");
-			return false;
-		}
-		
-		Main.Debug($"LoadedCargoAmount: {logicCar.LoadedCargoAmount} capacity: {logicCar.capacity}");
-		
-		//full
-		if (logicCar.LoadedCargoAmount >= logicCar.capacity)
-		{
-			Main.Debug($"{aCar.carType} can't load because it is full");
-			return false;
+			task = aTask;
+			return true;
 		}
 
-		return true;
+		task = null;
+		return false;
 	}
 
-	private void DoLoadStep(TrainCar carToLoad)
+	private void DoLoadStep(TrainCar carToLoad, CargoType cargoToLoad)
 	{
 		StartLoading();
 		
 		var logicCar = carToLoad.logicCar;
+		var cargoToLoadV2 = cargoToLoad.ToV2();
 
 		stopwatch.Stop();
 		var kgToLoad = Main.MySettings.LoadSpeed * (float)stopwatch.Elapsed.TotalSeconds;
 		stopwatch.Restart();
 		
 		// DV remembers the amount of cargo on a car in units, not kg. For example, the open hoppers can carry 1 unit of coal, which is 56000 kg.
-		var unitsToLoad = kgToLoad / cargoTypeV2.massPerUnit;
+		var unitsToLoad = kgToLoad / cargoToLoadV2.massPerUnit;
 		
 		Main.Debug($"{nameof(DoLoadStep)}: {kgToLoad} kg, {unitsToLoad} units");
 			
@@ -424,11 +437,11 @@ public class BulkLoader: MonoBehaviour
 			Main.Debug($"{nameof(DoLoadStep)}: {unitsToLoad} units");
 		}
 		
-		// this prevents an exception in LoadCargo
+		// the following line prevents an exception in Car.LoadCargo
 		logicCar.CurrentCargoTypeInCar = CargoType.None;
-		logicCar.LoadCargo(unitsToLoad, cargoType, machineController.warehouseMachine);
+		logicCar.LoadCargo(unitsToLoad, cargoToLoad, machineController.warehouseMachine);
 		
-		machineController.SetScreen(WarehouseMachineController.TextPreset.CarUpdated, true, carToLoad.ID, logicCar, cargoTypeV2);
+		displayText.text = $"Loading {carToLoad.logicCar.ID} with {cargoToLoadV2.LocalizedName()}, {carToLoad.GetFillPercent()}%";
 	}
 
 	private void StartLoading()
