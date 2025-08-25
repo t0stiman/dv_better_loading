@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics;
 using System.Linq;
 using DV;
 using DV.CashRegister;
-using DV.Localization;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
@@ -14,7 +12,7 @@ using UnityEngine;
 namespace better_loading;
 
 //all the animation and sound stuff is based on LocoResourceModule
-public class BulkLoader: MonoBehaviour
+public class BulkMachine: MonoBehaviour
 {
 	private WarehouseMachineController machineController;
 	private RailTrackBogiesOnTrack bogiesOnTrackComponent;
@@ -142,7 +140,7 @@ public class BulkLoader: MonoBehaviour
 		ChangeText(gameObject.FindChildByName("TextUnload"), "Stop");
 		ChangeText(gameObject.FindChildByName("TextLoad"), "Start");
 
-		SetIdleText();
+		SetDisabledText();
 	}
 
 	private void ChangeText(GameObject textTitleObject, string text)
@@ -224,7 +222,7 @@ public class BulkLoader: MonoBehaviour
 		
 		Start2();
 		loadUnloadCoro = StartCoroutine(Loading());
-		coroutineIsRunning = true;
+		
 		if (debugBox)
 		{
 			debugBox.SetActive(true);
@@ -236,15 +234,27 @@ public class BulkLoader: MonoBehaviour
 		if (!coroutineIsRunning)
 			return;
 		
-		coroutineIsRunning = false;
+		StopLoading(nameof(StopLoadingSequence));
 		StopCoroutine(loadUnloadCoro);
-		StopLoading("lever stop");
+		coroutineIsRunning = false;
+		SetDisabledText();
+		
+		if (debugBox)
+		{
+			debugBox.SetActive(false);
+		}
 	}
 	
-	private void SetIdleText()
+	private void SetDisabledText()
 	{
 		displayTitleText.SetText($"This machine loads {cargoTypesV2.Select(cargoType => cargoType.LocalizedName()).Join(", ")}");
 		displayText.SetText("Move the handle to start");
+	}
+
+	private void SetEnabledText()
+	{
+		displayTitleText.text = $"Machine enabled"; //todo
+		displayText.text = "Slowly drive the train under the chute";
 	}
 	
 	#region update
@@ -281,11 +291,11 @@ public class BulkLoader: MonoBehaviour
 	public IEnumerator Loading()
 	{
 		const float stopLoadingWaitTime = 0.2f;
-		
+
+		coroutineIsRunning = true;
 		Main.Debug(nameof(Loading));
-		
-		displayTitleText.text = $"Machine enabled"; //todo
-		displayText.text = "Slowly drive the train under the chute";
+
+		SetEnabledText();
 		
 		machineController.machineSound.Play(transform.position, parent: transform);
 
@@ -473,7 +483,7 @@ public class BulkLoader: MonoBehaviour
 		cargoIsFlowing = false;
 		stopwatch.Reset();
 
-		SetIdleText();
+		SetEnabledText();
 	}
 
 	#endregion

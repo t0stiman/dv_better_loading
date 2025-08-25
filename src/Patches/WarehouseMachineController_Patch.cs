@@ -24,7 +24,7 @@ public class WarehouseMachineController_Awake_Patch
 		
 		copy.name = __instance.gameObject.name.Replace("(Clone)", "").Replace("Warehouse", "Bulk");
 		
-		var bulkLoader = copy.AddComponent<BulkLoader>();
+		var bulkLoader = copy.AddComponent<BulkMachine>();
 		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
 		bulkLoader.PreStart(__instance, clonedMachineController, cargoTypes);
 		
