@@ -37,7 +37,6 @@ public class CargoModelController_OnCargoLoaded_Patch
 	private const float MIN_COAL_LEVEL = -2.8f;
 	private const float MAX_COAL_LEVEL = 0;
 	
-	//TODO use IndicatorModelChanger & IndicatorPortReader
 	private static void UpdateCargoLevel(CargoModelController modelController)
 	{
 		var modelTransform = modelController.currentCargoModel.transform;
@@ -51,7 +50,6 @@ public class CargoModelController_OnCargoLoaded_Patch
 	{
 		Main.Debug("Car is full, playing sound");
 		
-		//todo ding sound
 		SingletonBehaviour<AudioManager>.Instance.cargoLoadUnload?.Play(
 			__instance.trainCar.transform.position,
 			minDistance: 10f,
