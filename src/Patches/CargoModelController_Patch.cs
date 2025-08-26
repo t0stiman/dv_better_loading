@@ -15,6 +15,7 @@ public class CargoModelController_OnCargoLoaded_Patch
 {
 	private static bool Prefix(CargoModelController __instance, CargoType _)
 	{
+		//todo andere visuals
 		if(_ != CargoType.Coal) return true;
 
 		if (!__instance.currentCargoModel)
@@ -41,7 +42,7 @@ public class CargoModelController_OnCargoLoaded_Patch
 	{
 		var modelTransform = modelController.currentCargoModel.transform;
 		var loadLevel01 = modelController.trainCar.LoadedCargoAmount / modelController.trainCar.cargoCapacity;
-		var yLevel = Stuff.Map(loadLevel01, 0, 1, MIN_COAL_LEVEL, MAX_COAL_LEVEL);
+		var yLevel = Utilities.Map(loadLevel01, 0, 1, MIN_COAL_LEVEL, MAX_COAL_LEVEL);
 		
 		modelTransform.localPosition = new Vector3(modelTransform.localPosition.x, yLevel, modelTransform.localPosition.z);
 	}

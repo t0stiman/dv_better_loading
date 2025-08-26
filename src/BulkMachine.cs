@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using DV;
@@ -14,6 +15,9 @@ namespace better_loading;
 //all the animation and sound stuff is based on LocoResourceModule
 public class BulkMachine: MonoBehaviour
 {
+	// all WarehouseMachines that have a BulkMachine
+	public static List<WarehouseMachine> AllWarehouseMachinesWithBulk = new();
+	
 	private WarehouseMachineController machineController;
 	private RailTrackBogiesOnTrack bogiesOnTrackComponent;
 	private bool start2Done = false;
@@ -63,6 +67,8 @@ public class BulkMachine: MonoBehaviour
 	public void PreStart(WarehouseMachineController vanillaMachineController, WarehouseMachineController clonedMachineController, CargoType[] cargoTypes_)
 	{
 		machineController = vanillaMachineController;
+		AllWarehouseMachinesWithBulk.Add(machineController.warehouseMachine);
+		
 		cargoTypes = cargoTypes_;
 		cargoTypesV2 = cargoTypes_.Select(v1 => v1.ToV2()).ToArray();
 		
