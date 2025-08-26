@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 namespace better_loading;
 
-public static class TransformExtensions
+public static class Transform_Extensions
 {
 	public static Transform[] FindAllByName(this Scene scene, string name)
 	{

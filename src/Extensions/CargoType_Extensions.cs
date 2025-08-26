@@ -5,7 +5,7 @@ using DV.ThingTypes;
 
 namespace better_loading;
 
-public static class CargoTypeExtensions
+public static class CargoType_Extensions
 {
 	private static IReadOnlyList<CargoType> supportedBulkTypes { get; } = new List<CargoType>
 	{
