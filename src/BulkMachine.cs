@@ -32,7 +32,7 @@ public class BulkMachine: MonoBehaviour
 	private GameObject shuteOpeningMarker;
 	
 	private const int TRAINCAR_LAYER = (int)Layers.DVLayer.Train_Big_Collider;
-	private static readonly LayerMask TRAINCAR_MASK = MiscExtensions.LayerMaskFromInt(TRAINCAR_LAYER);
+	private static readonly LayerMask TRAINCAR_MASK = Misc_Extensions.LayerMaskFromInt(TRAINCAR_LAYER);
 	
 	//approximate vertical distance of the chute to the track
 	private const int CHUTE_HEIGHT = 10;
@@ -61,6 +61,14 @@ public class BulkMachine: MonoBehaviour
 	private Vector3 overlapBoxCenter;
 	private Vector3 overlapBoxHalfSize;
 	private Quaternion overlapBoxRotation;
+
+	private struct TrainCarCache
+	{
+		public TrainCar trainCar;
+		public GameObject collisionObject;
+	}
+	
+	private TrainCarCache previousCarCache = new();
 
 	#region setup
 
@@ -127,17 +135,16 @@ public class BulkMachine: MonoBehaviour
 		overlapBoxHalfSize = overlapBoxSize/2f;
 		overlapBoxRotation = industryCoal.rotation;
 		
-		if (Main.MySettings.EnableDebugBox)
-		{
-			debugBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
-			debugBox.name = nameof(debugBox);
-			Destroy(debugBox.GetComponent<BoxCollider>());
+		debugBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
+		debugBox.name = nameof(debugBox);
+		Destroy(debugBox.GetComponent<BoxCollider>());
 
-			debugBox.transform.position = overlapBoxCenter;
-			debugBox.transform.rotation = industryCoal.rotation;
-			debugBox.transform.localScale = overlapBoxSize; //localscale == actual size
-			debugBox.transform.SetParent(industryCoal);
-		}
+		debugBox.transform.position = overlapBoxCenter;
+		debugBox.transform.rotation = industryCoal.rotation;
+		debugBox.transform.localScale = overlapBoxSize; //localscale == actual size
+		debugBox.transform.SetParent(industryCoal);
+		
+		debugBox.SetActive(Main.MySettings.EnableDebugBox);
 	}
 
 	private void SetupTexts()
@@ -271,6 +278,7 @@ public class BulkMachine: MonoBehaviour
 		if (!TimeUtil.IsFlowing) return;
 		
 		DoSound();
+		debugBox?.SetActive(Main.MySettings.EnableDebugBox);
 	}
 
 	private void DoSound()
@@ -336,8 +344,6 @@ public class BulkMachine: MonoBehaviour
 				yield return WaitFor.Seconds(stopLoadingWaitTime);
 				continue;
 			}
-			
-			Main.Debug($"car under loader: {carUnderLoader.carType}");
 
 			if (!TryGetTask(carUnderLoader, out WarehouseTask task))
 			{
@@ -375,16 +381,17 @@ public class BulkMachine: MonoBehaviour
 	private bool IsCarUnderLoader(out TrainCar carUnderLoader)
 	{
 		carUnderLoader = null;
+		/*
 		var bogiesOnTrack = bogiesOnTrackComponent.bogiesOnTrack;
-		
+
 		//no cars on track
 		if (bogiesOnTrack.Count == 0) return false;
-		
+
 		// var carsOnLoadTrack = bogiesOnTrack
 		// 	.Select(bogie => bogie._car)
 		// 	.Distinct()
 		// 	.ToList();
-		
+
 		//todo
 		// ForceCollidersActive() ?
 
@@ -394,14 +401,30 @@ public class BulkMachine: MonoBehaviour
 		// 	//this happens on BE2
 		// 	return null;
 		// }
+
+		//*/
 		
 		var resultsCount = Physics.OverlapBoxNonAlloc(overlapBoxCenter, overlapBoxHalfSize, overlapBoxResults, overlapBoxRotation, TRAINCAR_MASK);
 
 		for (int i = 0; i < resultsCount; i++)
 		{
-			if (!overlapBoxResults[i].transform.parent.TryGetComponent<TrainCar>(out var trainCar)) continue;
-			carUnderLoader = trainCar;
-			return true;
+			if (overlapBoxResults[i].gameObject == previousCarCache.collisionObject)
+			{
+				carUnderLoader = previousCarCache.trainCar;
+				return true;
+			}
+			
+			var trainCar = overlapBoxResults[i].gameObject.GetComponentInParent<TrainCar>(); 
+			if (trainCar)
+			{
+				carUnderLoader = trainCar;
+				previousCarCache.trainCar = trainCar;
+				previousCarCache.collisionObject = overlapBoxResults[i].gameObject;
+				Main.Debug($"car under loader: {trainCar.carType}");
+				return true;
+			}
+			
+			Main.Error($"Could not get {nameof(TrainCar)} in '{gameObject.GetPath()}'");
 		}
 		
 		return false;
@@ -478,7 +501,6 @@ public class BulkMachine: MonoBehaviour
 	private void StopLoading(string reason = "")
 	{
 		if(!cargoIsFlowing) return;
-		
 		Main.Debug($"{nameof(StopLoading)}, {reason}");
 		
 		foreach (ParticleSystem raycastFlowingEffect in raycastFlowingEffects)

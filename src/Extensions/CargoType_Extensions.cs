@@ -10,8 +10,12 @@ public static class CargoType_Extensions
 	private static IReadOnlyList<CargoType> supportedBulkTypes { get; } = new List<CargoType>
 	{
 		CargoType.Coal,
-		// CargoType.IronOre
-		//graan
+		CargoType.IronOre,
+		CargoType.Wheat
+		//ballast
+		//sunflower
+		//flour
+		//corn
 	};
 	
 	public static bool IsSupportedBulkType(this CargoType cargoType)
