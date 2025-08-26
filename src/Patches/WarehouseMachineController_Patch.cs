@@ -43,6 +43,8 @@ public class WarehouseMachineController_Start_Patch
 	// Hide the bulk cargo from the screen
 	private static void ChangeSupportedText(WarehouseMachineController machineController)
 	{
+		machineController.CurrentTextPresets.Clear();
+		
 		var stringBuilder = new StringBuilder();
 		foreach (var cargoType in machineController.supportedCargoTypes)
 		{
