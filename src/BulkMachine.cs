@@ -15,11 +15,29 @@ namespace better_loading;
 //all the animation and sound stuff is based on LocoResourceModule
 public class BulkMachine: MonoBehaviour
 {
+	//kg/s
+	private static readonly Dictionary<CargoType, float> loadSpeed = new()
+	{
+		{ CargoType.Coal, 56000 / 74f },		//based on a YT video
+		{ CargoType.IronOre, 62000 / 30f }	//made up
+		//todo
+		//wheat
+		//ballast?
+		//sunflower
+		//flour
+		//corn
+	};
+	
+	public static bool IsSupportedBulkType(CargoType cargoType)
+	{
+		return loadSpeed.Keys.Contains(cargoType);
+	}
+	
 	// all WarehouseMachines that have a BulkMachine
 	public static List<WarehouseMachine> AllWarehouseMachinesWithBulk = new();
 	
 	private WarehouseMachineController machineController;
-	private RailTrackBogiesOnTrack bogiesOnTrackComponent;
+	private IndustryBuildingInfo industryBuildingInfo;
 	private bool start2Done = false;
 	
 	private Coroutine loadUnloadCoro;
@@ -68,11 +86,15 @@ public class BulkMachine: MonoBehaviour
 		public GameObject collisionObject;
 	}
 	
-	private TrainCarCache previousCarCache = new();
+	private TrainCarCache previousCarCache;
 
 	#region setup
 
-	public void PreStart(WarehouseMachineController vanillaMachineController, WarehouseMachineController clonedMachineController, CargoType[] cargoTypes_)
+	public void PreStart(
+		WarehouseMachineController vanillaMachineController, 
+		WarehouseMachineController clonedMachineController, 
+		CargoType[] cargoTypes_,
+		IndustryBuildingInfo industryBuildingInfo_)
 	{
 		machineController = vanillaMachineController;
 		AllWarehouseMachinesWithBulk.Add(machineController.warehouseMachine);
@@ -82,6 +104,8 @@ public class BulkMachine: MonoBehaviour
 		
 		displayTitleText = clonedMachineController.displayTitleText;
 		displayText = clonedMachineController.displayText;
+
+		industryBuildingInfo = industryBuildingInfo_;
 	}
 	
 	private void Start()
@@ -102,49 +126,46 @@ public class BulkMachine: MonoBehaviour
 	private void Start2()
 	{
 		if(start2Done) return;
-		
-		// finding Industry_Coal in Start() doesn't work for some reason
-		var industryCoal = GameObject.Find("Industry_Coal");
-		if (!industryCoal)
+
+		// finding industry buildings in Start() doesn't work for some reason
+		var industryBuilding = GameObject.Find(industryBuildingInfo.name)?.transform;
+		if (industryBuilding)
 		{
-			Main.Error("Industry_Coal could not be found");
+			Main.Debug($"Industry building on bulk machine {gameObject.name}: {industryBuilding.gameObject.GetPath()}");
+		}
+		else
+		{
+			Main.Error($"Failed to find industry building {industryBuildingInfo.name} on bulk machine {gameObject.name}");
 			return;
 		}
 
-		CreateShuteMarker(industryCoal.transform);
+		CreateShuteMarker(industryBuilding);
 
-		InitializeAudioSource(industryCoal.transform);
-		InitializeLoadingEffects(industryCoal.transform);
+		InitializeAudioSource(industryBuilding);
+		InitializeLoadingEffects(industryBuilding);
 		
-		SetupOverlapBox(industryCoal.transform);
-		
-		//this also doesn't work if i put it in Start()
-		bogiesOnTrackComponent = machineController.warehouseTrack.GetComponent<RailTrackBogiesOnTrack>();
-		if (!bogiesOnTrackComponent)
-		{
-			Main.Error($"Could not get {nameof(RailTrackBogiesOnTrack)}");
-		}
+		SetupOverlapBox(industryBuilding);
 
 		start2Done = true;
 	}
 
-	private void SetupOverlapBox(Transform industryCoal)
+	private void SetupOverlapBox(Transform industryBuilding)
 	{
 		overlapBoxCenter = shuteOpeningMarker.transform.position - new Vector3(0, CHUTE_HEIGHT / 2f, 0);
 		var overlapBoxSize = new Vector3(0.1f, CHUTE_HEIGHT, 0.1f);
 		overlapBoxHalfSize = overlapBoxSize/2f;
-		overlapBoxRotation = industryCoal.rotation;
+		overlapBoxRotation = industryBuilding.rotation;
 		
 		debugBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
 		debugBox.name = nameof(debugBox);
 		Destroy(debugBox.GetComponent<BoxCollider>());
 
 		debugBox.transform.position = overlapBoxCenter;
-		debugBox.transform.rotation = industryCoal.rotation;
+		debugBox.transform.rotation = industryBuilding.rotation;
 		debugBox.transform.localScale = overlapBoxSize; //localscale == actual size
-		debugBox.transform.SetParent(industryCoal);
+		debugBox.transform.SetParent(industryBuilding);
 		
-		debugBox.SetActive(Main.MySettings.EnableDebugBox);
+		debugBox.SetActive(Main.MySettings.EnableDebugBoxes);
 	}
 
 	private void SetupTexts()
@@ -162,10 +183,10 @@ public class BulkMachine: MonoBehaviour
 		tmp.SetText(text);
 	}
 
-	private void InitializeLoadingEffects(Transform coalLoader)
+	private void InitializeLoadingEffects(Transform industryBuilding)
 	{
 		var effectsObject = Instantiate(tenderCoalModule.raycastFlowingEffects[0].transform.parent, shuteOpeningMarker.transform.position, Quaternion.identity);
-		effectsObject.SetParent(coalLoader, true);
+		effectsObject.SetParent(industryBuilding, true);
 		effectsObject.name = nameof(effectsObject);
 		raycastFlowingEffects = effectsObject.GetComponentsInChildren<ParticleSystem>();
 
@@ -175,12 +196,12 @@ public class BulkMachine: MonoBehaviour
 		}
 	}
 
-	private void InitializeAudioSource(Transform coalLoader)
+	private void InitializeAudioSource(Transform industryBuilding)
 	{
 		Main.Log("Creating audio object");
 		
 		var OG = tenderCoalModule.audioSourcesPerFlow[(int)flowMode];
-		var audioObject = Instantiate(OG.gameObject, coalLoader);
+		var audioObject = Instantiate(OG.gameObject, industryBuilding);
 		audioObject.name = "LoadingSound";
 		audioObject.transform.position = shuteOpeningMarker.transform.position;
 
@@ -190,12 +211,12 @@ public class BulkMachine: MonoBehaviour
 	private void CreateShuteMarker(Transform parent)
 	{
 		shuteOpeningMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-		shuteOpeningMarker.name = "shuteOpeningMarker";
+		shuteOpeningMarker.name = nameof(shuteOpeningMarker);
 		//invisible 
-		shuteOpeningMarker.GetComponent<MeshRenderer>().enabled = false;
+		shuteOpeningMarker.GetComponent<MeshRenderer>().enabled = Main.MySettings.EnableDebugBoxes;
 		
 		shuteOpeningMarker.transform.SetParent(parent);
-		shuteOpeningMarker.transform.localPosition = new Vector3(-85.976f, 8.554f, 1.999f);
+		shuteOpeningMarker.transform.localPosition = industryBuildingInfo.shutePosition;
 		shuteOpeningMarker.transform.localEulerAngles = Vector3.zero;
 	}
 	
@@ -278,7 +299,7 @@ public class BulkMachine: MonoBehaviour
 		if (!TimeUtil.IsFlowing) return;
 		
 		DoSound();
-		debugBox?.SetActive(Main.MySettings.EnableDebugBox);
+		debugBox?.SetActive(Main.MySettings.EnableDebugBoxes);
 	}
 
 	private void DoSound()
@@ -361,8 +382,6 @@ public class BulkMachine: MonoBehaviour
 				continue;
 			}
 		
-			//todo readyForMachine?
-		
 			var logicCar = carUnderLoader.logicCar;
 			Main.Debug($"LoadedCargoAmount: {logicCar.LoadedCargoAmount} capacity: {logicCar.capacity}");
 		
@@ -381,40 +400,20 @@ public class BulkMachine: MonoBehaviour
 	private bool IsCarUnderLoader(out TrainCar carUnderLoader)
 	{
 		carUnderLoader = null;
-		/*
-		var bogiesOnTrack = bogiesOnTrackComponent.bogiesOnTrack;
-
-		//no cars on track
-		if (bogiesOnTrack.Count == 0) return false;
-
-		// var carsOnLoadTrack = bogiesOnTrack
-		// 	.Select(bogie => bogie._car)
-		// 	.Distinct()
-		// 	.ToList();
-
-		//todo
-		// ForceCollidersActive() ?
-
-		// var carCollider = closestCar.carColliders.collisionRoot.GetComponent<BoxCollider>();
-		// if (!carCollider)
-		// {
-		// 	//this happens on BE2
-		// 	return null;
-		// }
-
-		//*/
 		
 		var resultsCount = Physics.OverlapBoxNonAlloc(overlapBoxCenter, overlapBoxHalfSize, overlapBoxResults, overlapBoxRotation, TRAINCAR_MASK);
 
 		for (int i = 0; i < resultsCount; i++)
 		{
+			// use cache to reduce calls to expensive GetComponentInParent
 			if (overlapBoxResults[i].gameObject == previousCarCache.collisionObject)
 			{
 				carUnderLoader = previousCarCache.trainCar;
 				return true;
 			}
 			
-			var trainCar = overlapBoxResults[i].gameObject.GetComponentInParent<TrainCar>(); 
+			// on DV train cars GetComponent is sufficient, but on CCL cars the collider can be on a deeper level
+			var trainCar = overlapBoxResults[i].transform.parent.GetComponentInParent<TrainCar>(); 
 			if (trainCar)
 			{
 				carUnderLoader = trainCar;
@@ -458,7 +457,7 @@ public class BulkMachine: MonoBehaviour
 		var cargoToLoadV2 = cargoToLoad.ToV2();
 
 		stopwatch.Stop();
-		var kgToLoad = Main.MySettings.LoadSpeed * (float)stopwatch.Elapsed.TotalSeconds;
+		var kgToLoad = Main.MySettings.LoadSpeedMultipler * loadSpeed[cargoToLoad] * (float)stopwatch.Elapsed.TotalSeconds;
 		stopwatch.Restart();
 		
 		// DV remembers the amount of cargo on a car in units, not kg. For example, the open hoppers can carry 1 unit of coal, which is 56000 kg.

@@ -20,7 +20,7 @@ public class WarehouseTask_UpdateTaskState_Patch
 			{
 				//loading in progress
 				case WarehouseTaskType.Loading when
-					car.LoadedCargoAmount < __instance.cargoAmount:
+					!car.IsFull():
 					
 					__instance.SetState(TaskState.InProgress);
 					__result = __instance.state;

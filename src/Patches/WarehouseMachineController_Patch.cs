@@ -12,21 +12,29 @@ public class WarehouseMachineController_Start_Patch
 {
 	private static void Postfix(WarehouseMachineController __instance)
 	{
-		CreateBulkMachine(__instance);
+		var stationID = StationController.allStations.First(station => station.warehouseMachineControllers.Contains(__instance)).stationInfo.YardID;
+
+		if(!IndustryBuildingInfo.TryGetInfo(stationID, out var buildingInfo))
+		{
+			Main.Debug($"Skipping station {stationID}");
+			return;
+		}
+		
+		CreateBulkMachine(__instance, buildingInfo);
 		ChangeSupportedText(__instance);
 	}
 
 	// create the bulkMachine component
-	private static void CreateBulkMachine(WarehouseMachineController machineController)
+	private static void CreateBulkMachine(WarehouseMachineController machineController, IndustryBuildingInfo industryBuildingInfo)
 	{
-		var cargoTypes = machineController.supportedCargoTypes.Where(ct => ct.IsSupportedBulkType()).ToArray();
+		var cargoTypes = machineController.supportedCargoTypes.Where(ct => BulkMachine.IsSupportedBulkType(ct)).ToArray();
 		if(cargoTypes.Length == 0) return;
 
 		var model = machineController.transform.FindChildByName("WarehouseMachine model");
 		
 		var copy = Object.Instantiate(
 			machineController.gameObject,
-			machineController.transform.position + model.forward * -2,
+			machineController.transform.position + model.forward * 2,
 			machineController.transform.rotation,
 			machineController.transform.parent
 		);
@@ -35,7 +43,7 @@ public class WarehouseMachineController_Start_Patch
 		
 		var bulkMachine = copy.AddComponent<BulkMachine>();
 		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
-		bulkMachine.PreStart(machineController, clonedMachineController, cargoTypes);
+		bulkMachine.PreStart(machineController, clonedMachineController, cargoTypes, industryBuildingInfo);
 		
 		Object.Destroy(clonedMachineController);
 	}
@@ -48,7 +56,7 @@ public class WarehouseMachineController_Start_Patch
 		var stringBuilder = new StringBuilder();
 		foreach (var cargoType in machineController.supportedCargoTypes)
 		{
-			if(cargoType.IsSupportedBulkType()) continue;
+			if(BulkMachine.IsSupportedBulkType(cargoType)) continue;
 			stringBuilder.AppendLine(cargoType.ToV2().LocalizedName());
 		}
 		machineController.supportedCargoTypesText = stringBuilder.ToString();

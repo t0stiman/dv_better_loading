@@ -20,6 +20,6 @@ public static class TrainCar_Extensions
 
 	public static bool IsFull(this TrainCar trainCar)
 	{
-		return trainCar.LoadedCargoAmount >= trainCar.cargoCapacity;
+		return trainCar.logicCar.IsFull();
 	}
 }

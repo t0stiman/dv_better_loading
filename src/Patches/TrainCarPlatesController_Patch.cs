@@ -1,6 +1,5 @@
 ﻿using System;
 using HarmonyLib;
-using UnityEngine;
 
 namespace better_loading.Patches;
 
@@ -16,7 +15,7 @@ public class TrainCarPlatesController_UpdateCargoData_Patch
 	{
 		if (
 			__instance.trainCar.logicCar == null ||
-			!__instance.trainCar.LoadedCargo.IsSupportedBulkType()
+			!BulkMachine.IsSupportedBulkType(__instance.trainCar.LoadedCargo)
 			)
 		{
 			return;

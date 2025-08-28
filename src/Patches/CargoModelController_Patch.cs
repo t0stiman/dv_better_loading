@@ -29,12 +29,12 @@ public class CargoModelController_OnCargoLoaded_Patch
 	//only these car-cargo combinations will have a visibly rising cargo level. with others the cargo will appear when the car is full, just like the base game
 	private static readonly Dictionary<CarWithCargo, MinMax> fullySupportedCarTypes = new() {
 		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.Coal), new MinMax(-2.8f, 0f)},
-		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.IronOre), new MinMax(-1.5f, 0f)}, //todo
+		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.IronOre), new MinMax(-1.2f, 0f)},
 	};
 	
 	private static bool Prefix(CargoModelController __instance, CargoType _)
 	{
-		if(!_.IsSupportedBulkType()) return true;
+		if(!BulkMachine.IsSupportedBulkType(_)) return true;
 
 		if (!__instance.currentCargoModel)
 		{

@@ -6,48 +6,47 @@ namespace better_loading;
 public class Settings: UnityModManager.ModSettings
 {
 	public bool EnableDebugLog = false;
-	public bool EnableDebugBox = false;
+	public bool EnableDebugBoxes = false;
 	
 	//todo load speed for other cargos
 	
-	//how fast the cargo is loaded, in kg/s
-	public int LoadSpeed = CONVENIENT_SPEED;
+	public float LoadSpeedMultipler = CONVENIENT_MULTIPLIER;
 	public LoadSpeedPreset MyLoadSpeedPreset = LoadSpeedPreset.Convenient;
-	
-	//presets
-	private const int CONVENIENT_SPEED = 5000;
-	private const int REALISTIC_SPEED = 56000/74;
+
+	private const float CONVENIENT_MULTIPLIER = 4.5f;
+	private const float REALISTIC_MULTIPLIER = 1f;
 
 	public enum LoadSpeedPreset
 	{
 		Convenient,
 		Realistic,
-		Custom
+		// Custom
 	} 
 	
 	public void Draw(UnityModManager.ModEntry _)
 	{
-		GUILayout.Label("Loading speed, in kg/s");
-		if (GUILayout.Toggle(MyLoadSpeedPreset == LoadSpeedPreset.Convenient, $"Convenient ({CONVENIENT_SPEED})"))
+		GUILayout.Label("Loading speed");
+		if (GUILayout.Toggle(MyLoadSpeedPreset == LoadSpeedPreset.Convenient, $"Convenient ({CONVENIENT_MULTIPLIER:N1}x)"))
 		{
 			MyLoadSpeedPreset = LoadSpeedPreset.Convenient;
-			LoadSpeed = CONVENIENT_SPEED;
+			LoadSpeedMultipler = CONVENIENT_MULTIPLIER;
 		}
-		if (GUILayout.Toggle(MyLoadSpeedPreset == LoadSpeedPreset.Realistic, $"Realistic ({REALISTIC_SPEED})"))
+		if (GUILayout.Toggle(MyLoadSpeedPreset == LoadSpeedPreset.Realistic, $"Realistic ({REALISTIC_MULTIPLIER:N0}x)"))
 		{
 			MyLoadSpeedPreset = LoadSpeedPreset.Realistic;
-			LoadSpeed = REALISTIC_SPEED;
+			LoadSpeedMultipler = REALISTIC_MULTIPLIER;
 		}
-		if (GUILayout.Toggle(MyLoadSpeedPreset == LoadSpeedPreset.Custom, "Custom"))
-		{
-			MyLoadSpeedPreset = LoadSpeedPreset.Custom;
-			LoadSpeed = int.Parse(GUILayout.TextField(LoadSpeed.ToString()));
-		}
+		// if (GUILayout.Toggle(MyLoadSpeedPreset == LoadSpeedPreset.Custom, "Custom"))
+		// {
+		// 	MyLoadSpeedPreset = LoadSpeedPreset.Custom;
+		// 	CustomMultiplierText = GUILayout.TextField(CustomMultiplierText);
+		// 	LoadSpeedMultipler = float.Parse(CustomMultiplierText);
+		// }
 		
 		GUILayout.Space(20f);
 		
 		EnableDebugLog = GUILayout.Toggle(EnableDebugLog, "Enable debug logging");
-		EnableDebugBox = GUILayout.Toggle(EnableDebugBox, "Enable debug box");
+		EnableDebugBoxes = GUILayout.Toggle(EnableDebugBoxes, "Enable debug boxes");
 	}
 
 	public override void Save(UnityModManager.ModEntry modEntry)

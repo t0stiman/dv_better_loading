@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
-using DV;
-using DV.ThingTypes;
+using DV.Logic.Job;
 using UnityEngine;
 
 namespace better_loading;
@@ -23,5 +22,10 @@ public static class Misc_Extensions
 	public static string Join(this IEnumerable<string> strings, string separator)
 	{
 		return string.Join(separator, strings);
+	}
+	
+	public static bool IsFull(this Car car)
+	{
+		return car.LoadedCargoAmount >= car.capacity;
 	}
 }

@@ -17,7 +17,7 @@ public class WarehouseMachine_AnyTrainToLoadPresentOnTrack_Patch
 		foreach (var currentTask in __instance.currentTasks)
 		{
 			// =============
-			if (!currentTask.cargoType.IsSupportedBulkType() &&
+			if (!BulkMachine.IsSupportedBulkType(currentTask.cargoType) &&
 			// =============
 				currentTask.readyForMachine &&
 		    currentTask.warehouseTaskType == WarehouseTaskType.Loading &&
@@ -62,7 +62,7 @@ public class WarehouseMachine_AnyTrainToUnloadPresentOnTrack_Patch
 		foreach (var currentTask in __instance.currentTasks)
 		{
 			// =============
-			if (!currentTask.cargoType.IsSupportedBulkType() &&
+			if (!BulkMachine.IsSupportedBulkType(currentTask.cargoType) &&
 			// =============
 			    currentTask.readyForMachine && 
 			    currentTask.warehouseTaskType == WarehouseTaskType.Unloading &&
@@ -106,7 +106,7 @@ public class WarehouseMachine_GetCurrentLoadUnloadData_Patch
 		
 		// remove bulk cargo jobs
 		__result = __result
-			.Where(dataPerJob => !dataPerJob.tasksAvailableToProcess.Any(task => task.cargoType.IsSupportedBulkType()))
+			.Where(dataPerJob => !dataPerJob.tasksAvailableToProcess.Any(task => BulkMachine.IsSupportedBulkType(task.cargoType)))
 			.ToList();
 	}
 }
