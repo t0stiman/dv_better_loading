@@ -8,8 +8,6 @@ public class Settings: UnityModManager.ModSettings
 	public bool EnableDebugLog = false;
 	public bool EnableDebugBoxes = false;
 	
-	//todo load speed for other cargos
-	
 	public float LoadSpeedMultipler = CONVENIENT_MULTIPLIER;
 	public LoadSpeedPreset MyLoadSpeedPreset = LoadSpeedPreset.Convenient;
 
