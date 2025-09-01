@@ -12,12 +12,14 @@ public class WarehouseMachine_AnyTrainToLoadPresentOnTrack_Patch
 {
 	private static bool Prefix(WarehouseMachine __instance, ref bool __result)
 	{
-		if (!BulkMachine.AllWarehouseMachinesWithBulk.Contains(__instance)) return true;
+		var advancedMachine = AdvancedMachine.AllAdvancedMachines.FirstOrDefault(AM =>
+			AM.MachineController.warehouseMachine == __instance);
+		if(!advancedMachine) return true;
 		
 		foreach (var currentTask in __instance.currentTasks)
 		{
 			// =============
-			if (!BulkMachine.IsSupportedBulkType(currentTask.cargoType) &&
+			if (!advancedMachine.IsSupportedCargoType(currentTask.cargoType) &&
 			// =============
 				currentTask.readyForMachine &&
 		    currentTask.warehouseTaskType == WarehouseTaskType.Loading &&
@@ -57,12 +59,14 @@ public class WarehouseMachine_AnyTrainToUnloadPresentOnTrack_Patch
 {
 	private static bool Prefix(WarehouseMachine __instance, ref bool __result)
 	{
-		if (!BulkMachine.AllWarehouseMachinesWithBulk.Contains(__instance)) return true;
+		var advancedMachine = AdvancedMachine.AllAdvancedMachines.FirstOrDefault(AM =>
+			AM.MachineController.warehouseMachine == __instance);
+		if(!advancedMachine) return true;
 		
 		foreach (var currentTask in __instance.currentTasks)
 		{
 			// =============
-			if (!BulkMachine.IsSupportedBulkType(currentTask.cargoType) &&
+			if (!advancedMachine.IsSupportedCargoType(currentTask.cargoType) &&
 			// =============
 			    currentTask.readyForMachine && 
 			    currentTask.warehouseTaskType == WarehouseTaskType.Unloading &&
@@ -102,11 +106,13 @@ public class WarehouseMachine_GetCurrentLoadUnloadData_Patch
 {
 	private static void Postfix(WarehouseMachine __instance, ref List<WarehouseMachine.WarehouseLoadUnloadDataPerJob> __result)
 	{
-		if (!BulkMachine.AllWarehouseMachinesWithBulk.Contains(__instance)) return;
+		var advancedMachine = AdvancedMachine.AllAdvancedMachines.FirstOrDefault(AM =>
+			AM.MachineController.warehouseMachine == __instance);
+		if(!advancedMachine) return;
 		
 		// remove bulk cargo jobs
 		__result = __result
-			.Where(dataPerJob => !dataPerJob.tasksAvailableToProcess.Any(task => BulkMachine.IsSupportedBulkType(task.cargoType)))
+			.Where(dataPerJob => !dataPerJob.tasksAvailableToProcess.Any(task => advancedMachine.IsSupportedCargoType(task.cargoType)))
 			.ToList();
 	}
 }

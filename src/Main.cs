@@ -19,19 +19,19 @@ namespace better_loading
 			try
 			{
 				myModEntry = modEntry;
-				myModEntry.OnUnload = OnUnload;
+				modEntry.OnUnload = OnUnload;
 				
 				MySettings = UnityModManager.ModSettings.Load<Settings>(modEntry);
 				modEntry.OnGUI = entry => MySettings.Draw(entry);
 				modEntry.OnSaveGUI = entry => MySettings.Save(entry);
 				
-				myHarmony = new Harmony(myModEntry.Info.Id);
+				myHarmony = new Harmony(modEntry.Info.Id);
 				myHarmony.PatchAll(Assembly.GetExecutingAssembly());
 			}
 			catch (Exception ex)
 			{
-				myModEntry.Logger.LogException($"Failed to load {myModEntry.Info.DisplayName}:", ex);
-				myHarmony?.UnpatchAll(myModEntry.Info.Id);
+				modEntry.Logger.LogException($"Failed to load {modEntry.Info.DisplayName}:", ex);
+				myHarmony?.UnpatchAll(modEntry.Info.Id);
 				return false;
 			}
 
@@ -41,7 +41,7 @@ namespace better_loading
 
 		private static bool OnUnload(UnityModManager.ModEntry modEntry)
 		{
-			myHarmony?.UnpatchAll(myModEntry.Info.Id);
+			myHarmony?.UnpatchAll(modEntry.Info.Id);
 			return true;
 		}
 

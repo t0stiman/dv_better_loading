@@ -15,7 +15,7 @@ public class TrainCarPlatesController_UpdateCargoData_Patch
 	{
 		if (
 			__instance.trainCar.logicCar == null ||
-			!BulkMachine.IsSupportedBulkType(__instance.trainCar.LoadedCargo)
+			!BulkMachine.IsCargoTypeSupported(__instance.trainCar.LoadedCargo)
 			)
 		{
 			return;

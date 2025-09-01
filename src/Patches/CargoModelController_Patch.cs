@@ -8,7 +8,7 @@ using UnityEngine;
 namespace better_loading.Patches;
 
 /// <summary>
-/// visual cargo loading
+/// visual cargo loading (bulk cargo)
 /// </summary>
 [HarmonyPatch(typeof(CargoModelController))]
 [HarmonyPatch(nameof(CargoModelController.OnCargoLoaded))]
@@ -34,7 +34,7 @@ public class CargoModelController_OnCargoLoaded_Patch
 	
 	private static bool Prefix(CargoModelController __instance, CargoType _)
 	{
-		if(!BulkMachine.IsSupportedBulkType(_)) return true;
+		if(!BulkMachine.IsCargoTypeSupported(_)) return true;
 
 		if (!__instance.currentCargoModel)
 		{

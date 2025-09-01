@@ -1,6 +1,4 @@
 ﻿using System.Linq;
-using System.Text;
-using DV.ThingTypes.TransitionHelpers;
 using HarmonyLib;
 using UnityEngine;
 
@@ -14,20 +12,23 @@ public class WarehouseMachineController_Start_Patch
 	{
 		var stationID = StationController.allStations.First(station => station.warehouseMachineControllers.Contains(__instance)).stationInfo.YardID;
 
-		if(!IndustryBuildingInfo.TryGetInfo(stationID, out var buildingInfo))
+		if(IndustryBuildingInfo.TryGetInfo(stationID, out var buildingInfo))
+		{
+			CreateBulkMachine(__instance, buildingInfo);
+		}
+		else if(stationID == "HB")
+		{
+			CreateContainerMachine(__instance);
+		}
+		else
 		{
 			Main.Debug($"Skipping station {stationID}");
-			return;
 		}
-		
-		CreateBulkMachine(__instance, buildingInfo);
-		ChangeSupportedText(__instance);
 	}
-
-	// create the bulkMachine component
+	
 	private static void CreateBulkMachine(WarehouseMachineController machineController, IndustryBuildingInfo industryBuildingInfo)
 	{
-		var cargoTypes = machineController.supportedCargoTypes.Where(ct => BulkMachine.IsSupportedBulkType(ct)).ToArray();
+		var cargoTypes = machineController.supportedCargoTypes.Where(BulkMachine.IsCargoTypeSupported).ToArray();
 		if(cargoTypes.Length == 0) return;
 
 		var model = machineController.transform.FindChildByName("WarehouseMachine model");
@@ -48,30 +49,28 @@ public class WarehouseMachineController_Start_Patch
 		Object.Destroy(clonedMachineController);
 	}
 	
-	// Hide the bulk cargo from the screen
-	private static void ChangeSupportedText(WarehouseMachineController machineController)
+	//todo de-duplicate
+	private static void CreateContainerMachine(WarehouseMachineController machineController)
 	{
-		machineController.CurrentTextPresets.Clear();
+		var cargoTypes = machineController.supportedCargoTypes.Where(ContainerMachine.IsInShippingContainer).ToArray();
+		if(cargoTypes.Length == 0) return;
 		
-		var stringBuilder = new StringBuilder();
-		foreach (var cargoType in machineController.supportedCargoTypes)
-		{
-			if(BulkMachine.IsSupportedBulkType(cargoType)) continue;
-			stringBuilder.AppendLine(cargoType.ToV2().LocalizedName());
-		}
-		machineController.supportedCargoTypesText = stringBuilder.ToString();
-		machineController.DisplayIdleText();
+		var model = machineController.transform.FindChildByName("WarehouseMachine model");
+		
+		var copy = Object.Instantiate(
+			machineController.gameObject,
+			machineController.transform.position + model.forward * 2,
+			machineController.transform.rotation,
+			machineController.transform.parent
+		);
+		
+		copy.name = machineController.gameObject.name.Replace("(Clone)", "").Replace("Warehouse", "Container");
+		
+		var containerMachine = copy.AddComponent<ContainerMachine>();
+		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
+		containerMachine.PreStart(machineController, clonedMachineController, cargoTypes);
+		
+		Object.Destroy(clonedMachineController);
 	}
 }
-
-[HarmonyPatch(typeof(WarehouseMachineController))]
-[HarmonyPatch(nameof(WarehouseMachineController.OnDestroy))]
-public class WarehouseMachineController_OnDestroy_Patch
-{
-	private static void Prefix(WarehouseMachineController __instance)
-	{
-		BulkMachine.AllWarehouseMachinesWithBulk.Remove(__instance.warehouseMachine);
-	}
-}
-
 

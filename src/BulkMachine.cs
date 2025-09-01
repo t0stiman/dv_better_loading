@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using DV;
 using DV.CashRegister;
 using DV.Logic.Job;
@@ -13,7 +14,7 @@ using UnityEngine;
 namespace better_loading;
 
 //all the animation and sound stuff is based on LocoResourceModule
-public class BulkMachine: MonoBehaviour
+public class BulkMachine: AdvancedMachine
 {
 	//kg/s
 	private static readonly Dictionary<CargoType, float> loadSpeed = new()
@@ -28,23 +29,19 @@ public class BulkMachine: MonoBehaviour
 		//corn
 	};
 	
-	public static bool IsSupportedBulkType(CargoType cargoType)
+	public static bool IsCargoTypeSupported(CargoType cargoType)
 	{
 		return loadSpeed.Keys.Contains(cargoType);
 	}
 	
-	// all WarehouseMachines that have a BulkMachine
-	public static List<WarehouseMachine> AllWarehouseMachinesWithBulk = new();
+	// polymorphism
+	public override bool IsSupportedCargoType(CargoType cargoType)
+	{
+		return IsCargoTypeSupported(cargoType);
+	}
 	
-	private WarehouseMachineController machineController;
 	private IndustryBuildingInfo industryBuildingInfo;
 	private bool start2Done = false;
-	
-	private Coroutine loadUnloadCoro;
-	private bool coroutineIsRunning = false;
-	
-	private CargoType[] cargoTypes;
-	private CargoType_v2[] cargoTypesV2;
 	
 	private static LocoResourceModule tenderCoalModule;
 	private GameObject shuteOpeningMarker;
@@ -69,10 +66,6 @@ public class BulkMachine: MonoBehaviour
 	//particle effects
 	private ParticleSystem[] raycastFlowingEffects = {};
 	
-	//text
-	private TextMeshPro displayTitleText;
-	private TextMeshPro displayText;
-	
 	//box
 	private GameObject debugBox;
 	private readonly Collider[] overlapBoxResults = new Collider[2];
@@ -90,21 +83,25 @@ public class BulkMachine: MonoBehaviour
 
 	#region setup
 
+	private void OnEnable()
+	{
+		DisplayIdleText();
+	}
+	
+	private void OnDisable()
+	{
+		StopAllCoroutines();
+		loadUnloadCoro = null;
+	}
+	
 	public void PreStart(
 		WarehouseMachineController vanillaMachineController, 
 		WarehouseMachineController clonedMachineController, 
 		CargoType[] cargoTypes_,
 		IndustryBuildingInfo industryBuildingInfo_)
 	{
-		machineController = vanillaMachineController;
-		AllWarehouseMachinesWithBulk.Add(machineController.warehouseMachine);
+		base.PreStart(vanillaMachineController, clonedMachineController, cargoTypes_);
 		
-		cargoTypes = cargoTypes_;
-		cargoTypesV2 = cargoTypes_.Select(v1 => v1.ToV2()).ToArray();
-		
-		displayTitleText = clonedMachineController.displayTitleText;
-		displayText = clonedMachineController.displayText;
-
 		industryBuildingInfo = industryBuildingInfo_;
 	}
 	
@@ -119,8 +116,8 @@ public class BulkMachine: MonoBehaviour
 				.First(resourceModule => resourceModule.resourceType == ResourceType.Coal);
 		}
 		
-		SetupTexts();
-		StartCoroutine(InitLeverHJAF());
+		SetupTexts("Bulk cargo\nloader"); //todo unloading
+		base.Start_();
 	}
 
 	private void Start2()
@@ -168,21 +165,6 @@ public class BulkMachine: MonoBehaviour
 		debugBox.SetActive(Main.MySettings.EnableDebugBoxes);
 	}
 
-	private void SetupTexts()
-	{
-		ChangeText(gameObject.FindChildByName("TextTitle"), "Bulk cargo\ntransfer");
-		ChangeText(gameObject.FindChildByName("TextUnload"), "Stop");
-		ChangeText(gameObject.FindChildByName("TextLoad"), "Start");
-
-		SetDisabledText();
-	}
-
-	private void ChangeText(GameObject textTitleObject, string text)
-	{
-		var tmp = textTitleObject.GetComponent<TextMeshPro>();
-		tmp.SetText(text);
-	}
-
 	private void InitializeLoadingEffects(Transform industryBuilding)
 	{
 		var effectsObject = Instantiate(tenderCoalModule.raycastFlowingEffects[0].transform.parent, shuteOpeningMarker.transform.position, Quaternion.identity);
@@ -220,36 +202,9 @@ public class BulkMachine: MonoBehaviour
 		shuteOpeningMarker.transform.localEulerAngles = Vector3.zero;
 	}
 	
-	// WarehouseMachineController.InitLeverHJAF
-	private IEnumerator InitLeverHJAF()
-	{
-		HingeJointAngleFix jointFix;
-		while ((jointFix = gameObject.GetComponentInChildren<HingeJointAngleFix>()) == null)
-			yield return WaitFor.Seconds(0.2f);
-		var amplitudeChecker = jointFix.gameObject.AddComponent<RotaryAmplitudeChecker>();
-		var hingeJoint = jointFix.gameObject.GetComponent<HingeJoint>();
-		var amplitude = hingeJoint.limits.max - hingeJoint.limits.min;
-		amplitudeChecker.checkThreshold = amplitude * 0.2f;
-		amplitudeChecker.checkPeriod = 0.1f;
-		amplitudeChecker.RotaryStateChanged += OnLeverPositionChange;
-	}
-	
 	#endregion
 
-	private void OnLeverPositionChange(int positionState)
-	{
-		switch (positionState)
-		{
-			case -1:
-				StartLoadingSequence();
-				break;
-			case 1:
-				StopLoadingSequence();
-				break;
-		}
-	}
-
-	private void StartLoadingSequence()
+	protected override void StartLoadingSequence()
 	{
 		if (coroutineIsRunning)
 			return;
@@ -263,7 +218,7 @@ public class BulkMachine: MonoBehaviour
 		}
 	}
 	
-	private void StopLoadingSequence()
+	protected override void StopLoadingSequence()
 	{
 		if (!coroutineIsRunning)
 			return;
@@ -271,23 +226,17 @@ public class BulkMachine: MonoBehaviour
 		StopLoading(nameof(StopLoadingSequence));
 		StopCoroutine(loadUnloadCoro);
 		coroutineIsRunning = false;
-		SetDisabledText();
+		DisplayIdleText();
 		
 		if (debugBox)
 		{
 			debugBox.SetActive(false);
 		}
 	}
-	
-	private void SetDisabledText()
-	{
-		displayTitleText.SetText($"This machine loads {cargoTypesV2.Select(cargoType => cargoType.LocalizedName()).Join(", ")}");
-		displayText.SetText("Move the handle to start");
-	}
 
 	private void SetEnabledText()
 	{
-		displayTitleText.text = $"Machine enabled"; //todo
+		displayTitleText.text = $"Machine enabled";
 		displayText.text = "Slowly drive the train under the chute";
 	}
 	
@@ -332,7 +281,7 @@ public class BulkMachine: MonoBehaviour
 
 		SetEnabledText();
 		
-		machineController.machineSound.Play(transform.position, parent: transform);
+		MachineController.machineSound.Play(transform.position, parent: transform);
 
 		while (true)
 		{
@@ -437,7 +386,7 @@ public class BulkMachine: MonoBehaviour
 			return false;
 		}
 		
-		foreach (var aTask in machineController.warehouseMachine.currentTasks)
+		foreach (var aTask in MachineController.warehouseMachine.currentTasks)
 		{
 			if(!aTask.cars.Contains(aCar.logicCar)) continue;
 			
@@ -477,7 +426,7 @@ public class BulkMachine: MonoBehaviour
 		
 		// the following line prevents an exception in Car.LoadCargo
 		logicCar.CurrentCargoTypeInCar = CargoType.None;
-		logicCar.LoadCargo(unitsToLoad, cargoToLoad, machineController.warehouseMachine);
+		logicCar.LoadCargo(unitsToLoad, cargoToLoad, MachineController.warehouseMachine);
 		
 		displayText.text = $"Loading {carToLoad.logicCar.ID} with {cargoToLoadV2.LocalizedName()}, {carToLoad.GetFillPercent()}%";
 	}
