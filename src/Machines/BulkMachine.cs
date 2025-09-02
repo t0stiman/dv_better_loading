@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using DV;
 using DV.CashRegister;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
-using TMPro;
 using UnityEngine;
 
 namespace better_loading;
@@ -42,6 +40,7 @@ public class BulkMachine: AdvancedMachine
 	
 	private IndustryBuildingInfo industryBuildingInfo;
 	private bool start2Done = false;
+	private bool coroutineIsRunning = false;
 	
 	private static LocoResourceModule tenderCoalModule;
 	private GameObject shuteOpeningMarker;
@@ -277,7 +276,7 @@ public class BulkMachine: AdvancedMachine
 		const float stopLoadingWaitTime = 0.2f;
 
 		coroutineIsRunning = true;
-		Main.Debug(nameof(Loading));
+		Main.Debug($"{nameof(BulkMachine)}.{nameof(Loading)}");
 
 		SetEnabledText();
 		

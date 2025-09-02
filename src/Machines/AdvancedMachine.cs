@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using DV;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using TMPro;
@@ -17,7 +16,6 @@ public abstract class AdvancedMachine: MonoBehaviour
 	public WarehouseMachineController MachineController;
 	
 	protected Coroutine loadUnloadCoro;
-	protected bool coroutineIsRunning = false;
 	
 	protected CargoType[] cargoTypes;
 	protected CargoType_v2[] cargoTypesV2;

@@ -49,7 +49,6 @@ public class WarehouseMachineController_Start_Patch
 		Object.Destroy(clonedMachineController);
 	}
 	
-	//todo de-duplicate
 	private static void CreateContainerMachine(WarehouseMachineController machineController)
 	{
 		var cargoTypes = machineController.supportedCargoTypes.Where(ContainerMachine.IsInShippingContainer).ToArray();
@@ -59,7 +58,7 @@ public class WarehouseMachineController_Start_Patch
 		
 		var copy = Object.Instantiate(
 			machineController.gameObject,
-			machineController.transform.position + model.forward * 2,
+			machineController.transform.position + model.forward * -2,
 			machineController.transform.rotation,
 			machineController.transform.parent
 		);

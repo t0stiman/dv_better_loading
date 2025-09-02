@@ -93,7 +93,7 @@ public class CargoModelController_OnCargoLoaded_Patch
 
 		if (!__instance.currentCargoModelIndex.HasValue)
 			__instance.currentCargoModelIndex = (byte) Random.Range(0, cargoPrefabs.Length);
-		__instance.currentCargoModel = Object.Instantiate(cargoPrefabs[Mathf.Min(__instance.currentCargoModelIndex.Value, cargoPrefabs.Length - 1)], __instance.trainCar.interior.transform, false);
+		__instance.currentCargoModel = Object.Instantiate(cargoPrefabs[Mathf.Min(__instance.currentCargoModelIndex.Value, cargoPrefabs.Length - 1)], __instance.trainCar.interior, false);
 		__instance.currentCargoModel.transform.localPosition = Vector3.zero;
 		__instance.currentCargoModel.transform.localRotation = Quaternion.identity;
 		
