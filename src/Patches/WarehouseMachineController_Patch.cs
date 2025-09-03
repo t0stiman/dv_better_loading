@@ -16,9 +16,9 @@ public class WarehouseMachineController_Start_Patch
 		{
 			CreateBulkMachine(__instance, buildingInfo);
 		}
-		else if(stationID == "HB")
+		else if(CraneInfo.TryGetInfo(stationID, out var craneInfo))
 		{
-			CreateContainerMachine(__instance);
+			CreateContainerMachine(__instance, craneInfo);
 		}
 		else
 		{
@@ -49,7 +49,7 @@ public class WarehouseMachineController_Start_Patch
 		Object.Destroy(clonedMachineController);
 	}
 	
-	private static void CreateContainerMachine(WarehouseMachineController machineController)
+	private static void CreateContainerMachine(WarehouseMachineController machineController, CraneInfo craneInfo)
 	{
 		var cargoTypes = machineController.supportedCargoTypes.Where(ContainerMachine.IsInShippingContainer).ToArray();
 		if(cargoTypes.Length == 0) return;
@@ -67,7 +67,7 @@ public class WarehouseMachineController_Start_Patch
 		
 		var containerMachine = copy.AddComponent<ContainerMachine>();
 		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
-		containerMachine.PreStart(machineController, clonedMachineController, cargoTypes);
+		containerMachine.PreStart(machineController, clonedMachineController, cargoTypes, craneInfo);
 		
 		Object.Destroy(clonedMachineController);
 	}

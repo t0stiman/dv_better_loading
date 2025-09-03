@@ -34,6 +34,7 @@
 		<!-- UnityEngine -->
 		<Reference Include="UnityEngine" />
 		<Reference Include="UnityEngine.AudioModule" />
+		<Reference Include="UnityEngine.AnimationModule" />
 		<Reference Include="UnityEngine.CoreModule" />
 		<Reference Include="UnityEngine.ParticleSystemModule" />
 		<Reference Include="UnityEngine.PhysicsModule" />

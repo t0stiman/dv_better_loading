@@ -39,7 +39,7 @@ public class BulkMachine: AdvancedMachine
 	}
 	
 	private IndustryBuildingInfo industryBuildingInfo;
-	private bool start2Done = false;
+	private bool initialized = false;
 	private bool coroutineIsRunning = false;
 	
 	private static LocoResourceModule tenderCoalModule;
@@ -100,7 +100,6 @@ public class BulkMachine: AdvancedMachine
 		IndustryBuildingInfo industryBuildingInfo_)
 	{
 		base.PreStart(vanillaMachineController, clonedMachineController, cargoTypes_);
-		
 		industryBuildingInfo = industryBuildingInfo_;
 	}
 	
@@ -119,9 +118,9 @@ public class BulkMachine: AdvancedMachine
 		base.Start_();
 	}
 
-	private void Start2()
+	private void Initialize()
 	{
-		if(start2Done) return;
+		if(initialized) return;
 
 		// finding industry buildings in Start() doesn't work for some reason
 		var industryBuilding = GameObject.Find(industryBuildingInfo.name)?.transform;
@@ -142,7 +141,7 @@ public class BulkMachine: AdvancedMachine
 		
 		SetupOverlapBox(industryBuilding);
 
-		start2Done = true;
+		initialized = true;
 	}
 
 	private void SetupOverlapBox(Transform industryBuilding)
@@ -205,10 +204,9 @@ public class BulkMachine: AdvancedMachine
 
 	protected override void StartLoadingSequence()
 	{
-		if (coroutineIsRunning)
-			return;
+		if (coroutineIsRunning) return;
 		
-		Start2();
+		Initialize();
 		loadUnloadCoro = StartCoroutine(Loading());
 		
 		if (debugBox)

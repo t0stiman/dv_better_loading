@@ -6,4 +6,10 @@ public static class Utilities
 	{
 		return (input - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 	}
+	
+	public record struct MinMax(float minimum, float maximum)
+	{
+		public readonly float minimum = minimum;
+		public readonly float maximum = maximum;
+	}
 }

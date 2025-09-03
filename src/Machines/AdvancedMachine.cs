@@ -26,9 +26,8 @@ public abstract class AdvancedMachine: MonoBehaviour
 	
 	#region setup
 
-	public void PreStart(
-		WarehouseMachineController vanillaMachineController, 
-		WarehouseMachineController clonedMachineController, 
+	protected void PreStart(WarehouseMachineController vanillaMachineController,
+		WarehouseMachineController clonedMachineController,
 		CargoType[] cargoTypes_)
 	{
 		MachineController = vanillaMachineController;
@@ -82,8 +81,6 @@ public abstract class AdvancedMachine: MonoBehaviour
 		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
 		ChangeText(gameObject.FindChildByName("TextUnload"), "Stop");
 		ChangeText(gameObject.FindChildByName("TextLoad"), "Start");
-
-		DisplayIdleText();
 	}
 	
 	private void ChangeText(GameObject textTitleObject, string text)
