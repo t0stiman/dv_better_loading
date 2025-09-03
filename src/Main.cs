@@ -2,6 +2,7 @@
 using System.Reflection;
 using UnityModManagerNet;
 using HarmonyLib;
+using UnityEngine.SceneManagement;
 
 namespace better_loading
 {
@@ -27,11 +28,14 @@ namespace better_loading
 				
 				myHarmony = new Harmony(modEntry.Info.Id);
 				myHarmony.PatchAll(Assembly.GetExecutingAssembly());
+
+				SceneManager.sceneLoaded += ObjectDeleter.OnSceneLoaded;
 			}
 			catch (Exception ex)
 			{
 				modEntry.Logger.LogException($"Failed to load {modEntry.Info.DisplayName}:", ex);
 				myHarmony?.UnpatchAll(modEntry.Info.Id);
+				SceneManager.sceneLoaded -= ObjectDeleter.OnSceneLoaded;
 				return false;
 			}
 
