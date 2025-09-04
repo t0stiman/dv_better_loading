@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using DV.Logic.Job;
+﻿using DV.Logic.Job;
 using HarmonyLib;
 
 namespace better_loading.Patches;
@@ -11,7 +10,7 @@ public class WarehouseTask_UpdateTaskState_Patch
 {
 	private static bool Prefix(WarehouseTask __instance, ref TaskState __result)
 	{
-		if(AdvancedMachine.AllAdvancedMachines.All(AM => AM.MachineController.warehouseMachine != __instance.warehouseMachine)) return true;
+		if(!AdvancedMachine.TryGetAdvancedMachine(__instance.warehouseMachine, out _)) return true;
 		
 		__instance.readyForMachine = true;
 		

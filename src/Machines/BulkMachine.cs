@@ -81,25 +81,14 @@ public class BulkMachine: AdvancedMachine
 	private TrainCarCache previousCarCache;
 
 	#region setup
-
-	private void OnEnable()
-	{
-		DisplayIdleText();
-	}
-	
-	private void OnDisable()
-	{
-		StopAllCoroutines();
-		loadUnloadCoro = null;
-	}
 	
 	public void PreStart(
-		WarehouseMachineController vanillaMachineController, 
-		WarehouseMachineController clonedMachineController, 
+		WarehouseMachineController vanillaMachineController_, 
+		WarehouseMachineController clonedMachineController_, 
 		CargoType[] cargoTypes_,
 		IndustryBuildingInfo industryBuildingInfo_)
 	{
-		base.PreStart(vanillaMachineController, clonedMachineController, cargoTypes_);
+		base.PreStart(vanillaMachineController_, clonedMachineController_, cargoTypes_);
 		industryBuildingInfo = industryBuildingInfo_;
 	}
 	
@@ -115,7 +104,6 @@ public class BulkMachine: AdvancedMachine
 		}
 		
 		SetupTexts("Bulk cargo\nloader"); //todo unloading
-		base.Start_();
 	}
 
 	private void Initialize()
@@ -200,14 +188,34 @@ public class BulkMachine: AdvancedMachine
 		shuteOpeningMarker.transform.localEulerAngles = Vector3.zero;
 	}
 	
+	private void SetupTexts(string titleText)
+	{
+		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
+		ChangeText(gameObject.FindChildByName("TextUnload"), "Stop");
+		ChangeText(gameObject.FindChildByName("TextLoad"), "Start");
+	}
+	
 	#endregion
+	
+	protected override void OnLeverPositionChange(int positionState)
+	{
+		switch (positionState)
+		{
+			case -1:
+				StartTransferSequence();
+				break;
+			case 1:
+				StopTransferSequence();
+				break;
+		}
+	}
 
-	protected override void StartLoadingSequence()
+	private void StartTransferSequence()
 	{
 		if (coroutineIsRunning) return;
 		
 		Initialize();
-		loadUnloadCoro = StartCoroutine(Loading());
+		loadUnloadCoro = StartCoroutine(LoadingUnloading());
 		
 		if (debugBox)
 		{
@@ -215,15 +223,15 @@ public class BulkMachine: AdvancedMachine
 		}
 	}
 	
-	protected override void StopLoadingSequence()
+	private void StopTransferSequence()
 	{
 		if (!coroutineIsRunning)
 			return;
 		
-		StopLoading(nameof(StopLoadingSequence));
+		StopLoading(nameof(StopTransferSequence));
 		StopCoroutine(loadUnloadCoro);
 		coroutineIsRunning = false;
-		DisplayIdleText();
+		clonedMachineController.DisplayIdleText();
 		
 		if (debugBox)
 		{
@@ -233,8 +241,8 @@ public class BulkMachine: AdvancedMachine
 
 	private void SetEnabledText()
 	{
-		displayTitleText.text = $"Machine enabled";
-		displayText.text = "Slowly drive the train under the chute";
+		SetDisplayTitleText("Machine enabled");
+		SetDisplayDescriptionText("Slowly drive the train under the chute");
 	}
 	
 	#region update
@@ -257,28 +265,28 @@ public class BulkMachine: AdvancedMachine
 			if (flowVolume < 1.0)
 			{
 				//increase volume
-				flowVolume = Mathf.SmoothDamp(flowVolume, 1f, ref curVolumeVelocity, 0.15f);
+				flowVolume = Mathf.SmoothDamp(flowVolume, 1f, ref curVolumeVelocity, LocoResourceModule.FLOW_RATE_PERCENTAGE);
 			}
 		}
 		else if (flowVolume > 0.0)
 		{
 			//decrease volume
-			flowVolume = Mathf.SmoothDamp(flowVolume, 0f, ref curVolumeVelocity, 0.15f);
+			flowVolume = Mathf.SmoothDamp(flowVolume, 0f, ref curVolumeVelocity, LocoResourceModule.FLOW_RATE_PERCENTAGE);
 		}
 		
 		audioSource.Set(flowVolume);
 	}
 
-	public IEnumerator Loading()
+	protected IEnumerator LoadingUnloading()
 	{
 		const float stopLoadingWaitTime = 0.2f;
 
 		coroutineIsRunning = true;
-		Main.Debug($"{nameof(BulkMachine)}.{nameof(Loading)}");
+		Main.Debug($"{nameof(BulkMachine)}.{nameof(LoadingUnloading)}");
 
 		SetEnabledText();
 		
-		MachineController.machineSound.Play(transform.position, parent: transform);
+		clonedMachineController.machineSound.Play(transform.position, parent: transform);
 
 		while (true)
 		{
@@ -383,7 +391,7 @@ public class BulkMachine: AdvancedMachine
 			return false;
 		}
 		
-		foreach (var aTask in MachineController.warehouseMachine.currentTasks)
+		foreach (var aTask in VanillaMachineController.warehouseMachine.currentTasks)
 		{
 			if(!aTask.cars.Contains(aCar.logicCar)) continue;
 			
@@ -423,9 +431,9 @@ public class BulkMachine: AdvancedMachine
 		
 		// the following line prevents an exception in Car.LoadCargo
 		logicCar.CurrentCargoTypeInCar = CargoType.None;
-		logicCar.LoadCargo(unitsToLoad, cargoToLoad, MachineController.warehouseMachine);
+		logicCar.LoadCargo(unitsToLoad, cargoToLoad, VanillaMachineController.warehouseMachine);
 		
-		displayText.text = $"Loading {carToLoad.logicCar.ID} with {cargoToLoadV2.LocalizedName()}, {carToLoad.GetFillPercent()}%";
+		SetDisplayDescriptionText($"Loading {carToLoad.logicCar.ID} with {cargoToLoadV2.LocalizedName()}, {carToLoad.GetFillPercent()}%");
 	}
 
 	private void StartLoading()

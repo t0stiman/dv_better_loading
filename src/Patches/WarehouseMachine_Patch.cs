@@ -12,9 +12,7 @@ public class WarehouseMachine_AnyTrainToLoadPresentOnTrack_Patch
 {
 	private static bool Prefix(WarehouseMachine __instance, ref bool __result)
 	{
-		var advancedMachine = AdvancedMachine.AllAdvancedMachines.FirstOrDefault(AM =>
-			AM.MachineController.warehouseMachine == __instance);
-		if(!advancedMachine) return true;
+		if (!AdvancedMachine.TryGetAdvancedMachine(__instance, out var advancedMachine)) return true;
 		
 		foreach (var currentTask in __instance.currentTasks)
 		{
@@ -59,9 +57,7 @@ public class WarehouseMachine_AnyTrainToUnloadPresentOnTrack_Patch
 {
 	private static bool Prefix(WarehouseMachine __instance, ref bool __result)
 	{
-		var advancedMachine = AdvancedMachine.AllAdvancedMachines.FirstOrDefault(AM =>
-			AM.MachineController.warehouseMachine == __instance);
-		if(!advancedMachine) return true;
+		if (!AdvancedMachine.TryGetAdvancedMachine(__instance, out var advancedMachine)) return true;
 		
 		foreach (var currentTask in __instance.currentTasks)
 		{
@@ -106,9 +102,7 @@ public class WarehouseMachine_GetCurrentLoadUnloadData_Patch
 {
 	private static void Postfix(WarehouseMachine __instance, ref List<WarehouseMachine.WarehouseLoadUnloadDataPerJob> __result)
 	{
-		var advancedMachine = AdvancedMachine.AllAdvancedMachines.FirstOrDefault(AM =>
-			AM.MachineController.warehouseMachine == __instance);
-		if(!advancedMachine) return;
+		if (!AdvancedMachine.TryGetAdvancedMachine(__instance, out var advancedMachine)) return;
 		
 		// remove bulk cargo jobs
 		__result = __result

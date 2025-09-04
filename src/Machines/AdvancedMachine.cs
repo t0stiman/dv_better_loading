@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using TMPro;
@@ -11,79 +12,93 @@ namespace better_loading;
 
 public abstract class AdvancedMachine: MonoBehaviour
 {
-	public static readonly List<AdvancedMachine> AllAdvancedMachines = new();
+	protected static readonly List<AdvancedMachine> AllAdvancedMachines = new();
+	public static bool TryGetAdvancedMachine(WarehouseMachine aMachine,
+		out AdvancedMachine advancedMachine)
+	{
+		advancedMachine = AllAdvancedMachines.FirstOrDefault(AM =>
+			AM.VanillaMachineController.warehouseMachine == aMachine);
+		return advancedMachine is not null;
+	}
 	
-	public WarehouseMachineController MachineController;
+	public static readonly List<WarehouseMachineController> AllClonedMachineControllers = new();
+	
+	protected WarehouseMachineController VanillaMachineController;
+	protected WarehouseMachineController clonedMachineController;
 	
 	protected Coroutine loadUnloadCoro;
 	
 	protected CargoType[] cargoTypes;
 	protected CargoType_v2[] cargoTypesV2;
 	
-	//text
-	protected TextMeshPro displayTitleText;
-	protected TextMeshPro displayText;
-	
 	#region setup
 
 	protected void PreStart(WarehouseMachineController vanillaMachineController,
-		WarehouseMachineController clonedMachineController,
+		WarehouseMachineController clonedMachineController_,
 		CargoType[] cargoTypes_)
 	{
-		MachineController = vanillaMachineController;
+		VanillaMachineController = vanillaMachineController;
 		AllAdvancedMachines.Add(this);
+
+		clonedMachineController = clonedMachineController_;
+		AllClonedMachineControllers.Add(clonedMachineController_);
 		
 		cargoTypes = cargoTypes_;
 		cargoTypesV2 = cargoTypes_.Select(v1 => v1.ToV2()).ToArray();
 		
-		displayTitleText = clonedMachineController.displayTitleText;
-		displayText = clonedMachineController.displayText;
-		
-		HideCargoFromMachine(vanillaMachineController, cargoTypes_);
+		FilterCargoOnScreen(vanillaMachineController, cargoTypes_, true);
+		FilterCargoOnScreen(clonedMachineController_, cargoTypes_, false);
 	}
 	
-	// Hide these cargo types from the screen of the vanilla warehouse machine
-	protected static void HideCargoFromMachine(WarehouseMachineController machineController, CargoType[] cargoTypesToHide)
+	// hide == true -> Hide these cargo types from the screen of the warehouse machine
+	// hide == false -> Show only these cargo types on the machine, hide the rest
+	protected static void FilterCargoOnScreen(WarehouseMachineController machineController, CargoType[] cargoTypes, bool hide)
 	{
 		machineController.CurrentTextPresets.Clear();
 		
 		var stringBuilder = new StringBuilder();
 		foreach (var cargoType in machineController.supportedCargoTypes)
 		{
-			if(cargoTypesToHide.Contains(cargoType)) continue;
+			if(hide && cargoTypes.Contains(cargoType)) continue;
+			if(!hide && !cargoTypes.Contains(cargoType)) continue;
+			
 			stringBuilder.AppendLine(cargoType.ToV2().LocalizedName());
 		}
 		machineController.supportedCargoTypesText = stringBuilder.ToString();
 		machineController.DisplayIdleText();
 	}
 
-	protected void Start_()
+	private void OnEnable()
 	{
-		StartCoroutine(InitLeverHJAF());
+		StartCoroutine(InitializeLeverCallback());
+		StartCoroutine(TrainInRangeCheck());
 	}
 	
-	// WarehouseMachineController.InitLeverHJAF
-	private IEnumerator InitLeverHJAF()
+	private void OnDisable()
 	{
-		HingeJointAngleFix jointFix;
-		while ((jointFix = gameObject.GetComponentInChildren<HingeJointAngleFix>()) == null)
-			yield return WaitFor.Seconds(0.2f);
-		var amplitudeChecker = jointFix.gameObject.AddComponent<RotaryAmplitudeChecker>();
-		var hingeJoint = jointFix.gameObject.GetComponent<HingeJoint>();
-		var amplitude = hingeJoint.limits.max - hingeJoint.limits.min;
-		amplitudeChecker.checkThreshold = amplitude * 0.2f;
-		amplitudeChecker.checkPeriod = 0.1f;
+		StopAllCoroutines();
+		loadUnloadCoro = null;
+	}
+	
+	// subscribe our callback function to RotaryStateChanged and unsubscribe the vanilla
+	private IEnumerator InitializeLeverCallback()
+	{
+		while (!clonedMachineController || !clonedMachineController.initialized)
+		{
+			yield return WaitFor.Seconds(0.5f);
+		}
+
+		var amplitudeChecker = clonedMachineController.GetComponentInChildren<RotaryAmplitudeChecker>();
+		if (!amplitudeChecker)
+		{
+			Main.Error("amplitudeChecker is null");
+			yield break;
+		}
 		amplitudeChecker.RotaryStateChanged += OnLeverPositionChange;
+		amplitudeChecker.RotaryStateChanged -= clonedMachineController.OnLeverPositionChange;
 	}
 	
-	protected void SetupTexts(string titleText)
-	{
-		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
-		ChangeText(gameObject.FindChildByName("TextUnload"), "Stop");
-		ChangeText(gameObject.FindChildByName("TextLoad"), "Start");
-	}
-	
-	private void ChangeText(GameObject textTitleObject, string text)
+	protected void ChangeText(GameObject textTitleObject, string text)
 	{
 		var tmp = textTitleObject.GetComponent<TextMeshPro>();
 		tmp.SetText(text);
@@ -96,27 +111,82 @@ public abstract class AdvancedMachine: MonoBehaviour
 		AllAdvancedMachines.Remove(this);
 	}
 
-	private void OnLeverPositionChange(int positionState)
-	{
-		switch (positionState)
-		{
-			case -1:
-				StartLoadingSequence();
-				break;
-			case 1:
-				StopLoadingSequence();
-				break;
-		}
-	}
-
-	protected abstract void StartLoadingSequence();
-	protected abstract void StopLoadingSequence();
-	
-	protected virtual void DisplayIdleText()
-	{
-		displayTitleText.SetText($"This machine loads: {cargoTypesV2.Select(cargoType => cargoType.LocalizedName()).Join(", ")}");
-		displayText.SetText("Move the handle to start");
-	}
+	protected abstract void OnLeverPositionChange(int positionState);
 
 	public abstract bool IsSupportedCargoType(CargoType cargoType);
+	
+	protected IEnumerable<WarehouseTask> GetReadyTasks()
+	{
+		return VanillaMachineController.warehouseMachine.currentTasks.Where(task =>
+			IsSupportedCargoType(task.cargoType) &&
+			task.readyForMachine &&
+			task.warehouseTaskType != WarehouseTaskType.None &&
+			VanillaMachineController.warehouseMachine.CarsPresentOnWarehouseTrack(task.cars)
+		);
+	}
+	
+	protected bool AnyTrainToLoadPresentOnTrack()
+	{
+		return GetReadyTasks().Any(task => task.warehouseTaskType == WarehouseTaskType.Loading);
+	}
+
+	protected bool AnyTrainToUnloadPresentOnTrack()
+	{
+		return GetReadyTasks().Any(task => task.warehouseTaskType == WarehouseTaskType.Unloading);
+	}
+	
+	//pretty much the same as WarehouseMachineController.TrainInRangeCheck
+	private IEnumerator TrainInRangeCheck()
+	{
+		while (!clonedMachineController || !clonedMachineController.initialized)
+		{
+			yield return WaitFor.Seconds(WarehouseMachineController.TRAIN_IN_RANGE_CHECK_PERIOD);
+		}
+		
+		bool aTrainWasPresent = false;
+		clonedMachineController.ClearTrainInRangeText();
+		
+		while (true)
+		{
+			yield return WaitFor.Seconds(WarehouseMachineController.TRAIN_IN_RANGE_CHECK_PERIOD);
+			var loadPresentOnTrack = AnyTrainToLoadPresentOnTrack();
+			var unloadPresentOnTrack = AnyTrainToUnloadPresentOnTrack();
+	
+			var trainIsPresent = loadPresentOnTrack | unloadPresentOnTrack && loadUnloadCoro == null;
+			if(trainIsPresent == aTrainWasPresent) continue;
+	
+			if (aTrainWasPresent)
+			{
+				clonedMachineController.ClearTrainInRangeText();
+			}
+			else
+			{
+				clonedMachineController.SetScreen(WarehouseMachineController.TextPreset.TrainInRange,
+					extra: loadPresentOnTrack ? "whm/load_brackets" : "whm/unload_brackets");
+			}
+	
+			aTrainWasPresent = trainIsPresent;
+		}
+	}
+	
+	protected void SetDisplayTitleText(string str)
+	{
+		clonedMachineController.displayTitleText.SetText(str);
+	}
+	
+	protected void SetDisplayDescriptionText(string str)
+	{
+		clonedMachineController.displayText.SetText(str);
+	}
+
+	protected void SetScreen(
+		WarehouseMachineController.TextPreset preset,
+		bool isLoading = false,
+		string jobId = null,
+		Car car = null,
+		CargoType_v2 cargoType = null,
+		string extra = null)
+	{
+		clonedMachineController.SetScreen(preset, isLoading, jobId, car, cargoType, extra);
+	}
 }

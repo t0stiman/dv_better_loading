@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace better_loading;
 
@@ -69,31 +66,19 @@ public class ContainerMachine: AdvancedMachine
 		return IsInShippingContainer(cargoType);
 	}
 
-	private void OnEnable()
-	{
-		// StartCoroutine(TrainInRangeCheck()); //todo
-	}
-	
-	private void OnDisable()
-	{
-		StopAllCoroutines();
-		loadUnloadCoro = null;
-	}
-
-	public void PreStart(WarehouseMachineController vanillaMachineController,
-		WarehouseMachineController clonedMachineController,
+	public void PreStart(WarehouseMachineController vanillaMachineController_,
+		WarehouseMachineController clonedMachineController_,
 		CargoType[] cargoTypes_,
 		CraneInfo craneInfo_)
 	{
-		base.PreStart(vanillaMachineController, clonedMachineController, cargoTypes_);
+		base.PreStart(vanillaMachineController_, clonedMachineController_, cargoTypes_);
 		craneInfo = craneInfo_;
 	}
 
 	private void Start()
 	{
 		SetupTexts("Container\ntransfer");
-		DisplayIdleText();
-		base.Start_();
+		clonedMachineController.DisplayIdleText();
 	}
 
 	private void Initialize()
@@ -120,46 +105,58 @@ public class ContainerMachine: AdvancedMachine
 
 		initialized = true;
 	}
+	
+	protected override void OnLeverPositionChange(int positionState)
+	{
+		switch (positionState)
+		{
+			case -1:
+				StartTransferSequence(false);
+				break;
+			case 1:
+				StartTransferSequence(true);
+				break;
+		}
+	}
 
-	protected override void StartLoadingSequence()
+	private void StartTransferSequence(bool isLoading)
 	{
 		if (loadUnloadCoro != null)
 			return;
 		
 		Initialize();
-		loadUnloadCoro = StartCoroutine(LoadingUnloading());
+		clonedMachineController.ClearTrainInRangeText();
+		loadUnloadCoro = StartCoroutine(LoadingUnloading(isLoading));
 	}
 
-	protected override void StopLoadingSequence()
-	{
-		if (loadUnloadCoro != null)
-		{
-			StopCoroutine(loadUnloadCoro);
-		}
-		
-		DisplayIdleText();
-	}
+	// protected void StopTransferSequence()
+	// {
+	// 	if (loadUnloadCoro != null)
+	// 	{
+	// 		StopCoroutine(loadUnloadCoro);
+	// 	}
+	// 	
+	// 	clonedMachineController.DisplayIdleText();
+	// }
 	
-	public IEnumerator LoadingUnloading()
+	protected IEnumerator LoadingUnloading(bool isLoading)
 	{
 		yield return null;
 		Main.Debug($"{nameof(ContainerMachine)}.{nameof(LoadingUnloading)}");
 		
-		MachineController.machineSound.Play(transform.position, parent: transform);
-		var anythingDone = false;
+		SetScreen(WarehouseMachineController.TextPreset.ClearDesc);
+		VanillaMachineController.machineSound.Play(transform.position, parent: transform);
+		var anythingProcessed = false;
 
-		var currentTasks = MachineController.warehouseMachine.currentTasks;
+		var currentTasks = VanillaMachineController.warehouseMachine.currentTasks;
 		if (currentTasks.Count == 0)
 		{
 			Main.Debug("No tasks");
+			SetScreen(WarehouseMachineController.TextPreset.NoTrains, isLoading);
 		}
 
-		var readyTasks = currentTasks.Where(task =>
-			MachineController.warehouseMachine.CarsPresentOnWarehouseTrack(task.cars) &&
-			task.readyForMachine &&
-			!MachineController.AnyCarMoving(task.cars)
-		).ToArray();
-		
+		var readyTasks = GetReadyTasks().ToArray();
+		MovingCarsCheck(ref readyTasks);
 		Main.Debug($"{nameof(readyTasks)}: {readyTasks.Length}");
 
 		var loadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Loading).ToArray();
@@ -179,9 +176,10 @@ public class ContainerMachine: AdvancedMachine
 				var trainCar = taskCar.TrainCar();
 				var containerInfo = containerArea.GetContainerObject(taskCar);
 				var containerObject = containerInfo.gameObject;
-				anythingDone = true;
-				
-				displayText.SetText($"Loading {cargoName} onto {taskCar.ID}");
+				anythingProcessed = true;
+			
+				SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
+				SetDisplayDescriptionText($"Loading {cargoName} onto {taskCar.ID}");
 				
 				var carTransform = trainCar.transform;
 				var containerTransform = containerObject.transform;
@@ -216,7 +214,7 @@ public class ContainerMachine: AdvancedMachine
 				var amountToLoad = task.cargoAmount >= taskCar.capacity ? taskCar.capacity : task.cargoAmount;
 				//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
 				trainCar.CargoModelController.currentCargoModelIndex = containerInfo.cargoModelIndex;
-				taskCar.LoadCargo(amountToLoad, task.cargoType, MachineController.warehouseMachine);
+				taskCar.LoadCargo(amountToLoad, task.cargoType, VanillaMachineController.warehouseMachine);
 				//todo fakecargo ook amount?
 			}
 		}
@@ -224,61 +222,42 @@ public class ContainerMachine: AdvancedMachine
 		var unloadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Unloading).ToArray();
 		foreach (var task in unloadTasks)
 		{
-			//todo
+			//todo unloading
 		}
 		
-		if (anythingDone)
+		if (anythingProcessed)
 		{
 			Main.Debug("something done");
-			displayText.SetText("Completed");
+			SetScreen(WarehouseMachineController.TextPreset.Completed, isLoading);
 		}
 		else
 		{
 			Main.Debug("nothing done");
-			displayText.SetText("Failed");
+			SetScreen(WarehouseMachineController.TextPreset.Failed, isLoading);
 			//todo play error sound
 		}
 		
-		yield return StartCoroutine(ResetTextToIdleDisplay(anythingDone ? 
+		yield return clonedMachineController.StartCoroutine(clonedMachineController.ResetTextToIdleDisplay(anythingProcessed ? 
 			WarehouseMachineController.CLEAR_MACHINE_ACTION_TEXT_AFTER_TIME_LONG :
 			WarehouseMachineController.CLEAR_MACHINE_ACTION_TEXT_AFTER_TIME_SHORT));
 		loadUnloadCoro = null;
 	}
-	
-	private IEnumerator ResetTextToIdleDisplay(float resetTextAfter)
+
+	private void MovingCarsCheck(ref WarehouseTask[] readyTasks)
 	{
-		yield return WaitFor.Seconds(resetTextAfter);
-		DisplayIdleText();
+		foreach (var rt in readyTasks)
+		{
+			if (!clonedMachineController.AnyCarMoving(rt.cars)) continue;
+			
+			SetScreen(WarehouseMachineController.TextPreset.Moving, rt.warehouseTaskType == WarehouseTaskType.Loading, rt.Job.ID);
+			break;
+		}
+
+		readyTasks = readyTasks.Where(t => !clonedMachineController.AnyCarMoving(t.cars)).ToArray();
 	}
-	
-	// private IEnumerator TrainInRangeCheck()
-	// {
-	// 	while (true)
-	// 	{
-	// 		bool loadPresentOnTrack;
-	//
-	// 		do
-	// 		{
-	// 			yield return WaitFor.Seconds(1f);
-	// 			loadPresentOnTrack = machineController.warehouseMachine.AnyTrainToLoadPresentOnTrack();
-	//
-	// 			if (loadPresentOnTrack && loadUnloadCoro == null)
-	// 				goto label_4;
-	// 		}
-	// 		while (displayTrainInRangeText.text.Length == 0);
-	// 		
-	// 		ClearTrainInRangeText();
-	// 		continue;
-	// 		
-	// 		label_4:
-	// 		
-	// 		SetScreen(WarehouseMachineController.TextPreset.TrainInRange, extra: !loadPresentOnTrack ? "whm/unload_brackets" : (!unloadPresentOnTrack ? "whm/load_brackets" : "whm/load_unload_brackets"));
-	// 	}
-	// }
-	
-	protected override void DisplayIdleText()
+
+	private void SetupTexts(string titleText)
 	{
-		displayTitleText.SetText("This machine loads shipping containers");
-		displayText.SetText("Move the handle to start");
+		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
 	}
 }
