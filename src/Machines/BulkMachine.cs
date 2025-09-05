@@ -17,8 +17,8 @@ public class BulkMachine: AdvancedMachine
 	//kg/s
 	private static readonly Dictionary<CargoType, float> loadSpeed = new()
 	{
-		{ CargoType.Coal, 56000 / 74f },		//based on a YT video
-		{ CargoType.IronOre, 62000 / 30f }	//made up
+		{ CargoType.Coal, 56000 / 45f },
+		{ CargoType.IronOre, 62000 / 20f }
 		//todo
 		//wheat
 		//ballast?
@@ -81,6 +81,12 @@ public class BulkMachine: AdvancedMachine
 	private TrainCarCache previousCarCache;
 
 	#region setup
+	
+	protected override void OnEnable_()
+	{
+		StartCoroutine(InitializeLeverCallback());
+		// no TrainInRangeCheck
+	}
 	
 	public void PreStart(
 		WarehouseMachineController vanillaMachineController_, 
@@ -411,7 +417,7 @@ public class BulkMachine: AdvancedMachine
 		var cargoToLoadV2 = cargoToLoad.ToV2();
 
 		stopwatch.Stop();
-		var kgToLoad = Main.MySettings.LoadSpeedMultipler * loadSpeed[cargoToLoad] * (float)stopwatch.Elapsed.TotalSeconds;
+		var kgToLoad = Main.MySettings.BulkLoadSpeedMultiplier * loadSpeed[cargoToLoad] * (float)stopwatch.Elapsed.TotalSeconds;
 		stopwatch.Restart();
 		
 		// DV remembers the amount of cargo on a car in units, not kg. For example, the open hoppers can carry 1 unit of coal, which is 56000 kg.

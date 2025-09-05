@@ -5,7 +5,6 @@ namespace better_loading;
 
 public class Crane: MonoBehaviour
 {
-	private const float CRANE_SPEED = 2f;
 	private const float CLOSE_ENOUGH = 0.01f;
 	private readonly float CLOSE_ENOUGH_SQUARED = Mathf.Pow(CLOSE_ENOUGH, 2);
 	private const float HORIZONTAL_MOVE_ALTITUDE_LOCAL = 6.3f;
@@ -52,7 +51,7 @@ public class Crane: MonoBehaviour
 
 				positionDelta = targetWorldPosition - grabber.position;
 				var localPositionDelta = grabber.InverseTransformDirection(positionDelta);
-				var maxStepSize = Time.deltaTime * CRANE_SPEED;
+				var maxStepSize = Time.deltaTime * Main.MySettings.ContainerLoadSpeed;
 				
 				cab.Translate(localPositionDelta.OnlyZ().ClampMagnitude(maxStepSize), Space.Self);
 				based.Translate(localPositionDelta.OnlyX().ClampMagnitude(maxStepSize), Space.Self);
@@ -70,7 +69,7 @@ public class Crane: MonoBehaviour
 
 				positionDelta = targetWorldPosition - grabber.position;
 				var localPositionDelta = grabber.InverseTransformDirection(positionDelta);
-				var maxStepSize = Time.deltaTime * CRANE_SPEED;
+				var maxStepSize = Time.deltaTime * Main.MySettings.ContainerLoadSpeed;
 
 				grabber.Translate(localPositionDelta.OnlyY().ClampMagnitude(maxStepSize), Space.Self);
 				cab.Translate(localPositionDelta.OnlyZ().ClampMagnitude(maxStepSize), Space.Self);
@@ -90,7 +89,7 @@ public class Crane: MonoBehaviour
 			yield return null;
 			
 			localYDelta = HORIZONTAL_MOVE_ALTITUDE_LOCAL - grabber.localPosition.y;
-			var maxStepSize = Time.deltaTime * CRANE_SPEED;
+			var maxStepSize = Time.deltaTime * Main.MySettings.ContainerLoadSpeed;
 			var step = new Vector3(0, localYDelta < maxStepSize ? localYDelta : maxStepSize, 0);
 			
 			grabber.Translate(step, Space.Self);

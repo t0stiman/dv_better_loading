@@ -16,8 +16,9 @@ public abstract class AdvancedMachine: MonoBehaviour
 	public static bool TryGetAdvancedMachine(WarehouseMachine aMachine,
 		out AdvancedMachine advancedMachine)
 	{
+		// using the == operator on WarehouseMachine does not work, so we compare the track IDs
 		advancedMachine = AllAdvancedMachines.FirstOrDefault(AM =>
-			AM.VanillaMachineController.warehouseMachine == aMachine);
+			AM.VanillaMachineController.warehouseMachine.WarehouseTrack.ID == aMachine.WarehouseTrack.ID);
 		return advancedMachine is not null;
 	}
 	
@@ -70,6 +71,12 @@ public abstract class AdvancedMachine: MonoBehaviour
 
 	private void OnEnable()
 	{
+		OnEnable_();
+	}
+	
+	//make it overrideable
+	protected virtual void OnEnable_()
+	{
 		StartCoroutine(InitializeLeverCallback());
 		StartCoroutine(TrainInRangeCheck());
 	}
@@ -81,7 +88,7 @@ public abstract class AdvancedMachine: MonoBehaviour
 	}
 	
 	// subscribe our callback function to RotaryStateChanged and unsubscribe the vanilla
-	private IEnumerator InitializeLeverCallback()
+	protected IEnumerator InitializeLeverCallback()
 	{
 		while (!clonedMachineController || !clonedMachineController.initialized)
 		{
