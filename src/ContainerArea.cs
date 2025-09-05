@@ -9,28 +9,23 @@ using Random = UnityEngine.Random;
 
 namespace better_loading;
 
-public class ContainerArea
+public class ContainerArea: MonoBehaviour
 {
 	private readonly List<ShippingContainer> containers = new();
+	private Quaternion containersRotation;
 
-	public readonly Vector3 center;
-	private readonly Quaternion rotation;
-	private readonly Vector3 forward;
-
-	public ContainerArea(Vector3 center_, Quaternion rotation_, Vector3 forward_)
+	private void Start()
 	{
-		center = center_;
-		rotation = rotation_;
-		forward = forward_; //can probably be calculated from rotation be I can't be bothered
+		containersRotation = transform.rotation * Quaternion.Euler(0, 90, 0);
 	}
-	
+
 	public void SpawnContainers(List<Car> cars, CargoType cargoType)
 	{
 		foreach (var car in cars)
 		{
 			var slot = containers.Count; //todo
-			var position = center + slot * 14f * forward;
-			var cargo = CreateContainerModel(car.TrainCar(), cargoType, position, rotation, out var cargoModelIndex);
+			var position = transform.position + slot * 14f * transform.right;
+			var cargo = CreateContainerModel(car.TrainCar(), cargoType, position, containersRotation, out var cargoModelIndex);
 			
 			containers.Add(new ShippingContainer(cargo, car, cargoModelIndex));
 		}

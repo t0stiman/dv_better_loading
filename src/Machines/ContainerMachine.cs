@@ -9,15 +9,10 @@ namespace better_loading;
 
 public class ContainerMachine: AdvancedMachine
 {
-	private const float craneSpeed = 2f; //todo speed in CraneInfo
-
 	private bool initialized = false;
-	
-	private GameObject crane_base;
-	private GameObject crane_cab;
-	// private GameObject crane_grabber;
+
+	private Crane crane;
 	private CraneInfo craneInfo;
-	
 	private ContainerArea containerArea;
 	
 	public static bool IsInShippingContainer(CargoType cargoType)
@@ -85,27 +80,24 @@ public class ContainerMachine: AdvancedMachine
 	{
 		if(initialized) return;
 		
-		var crane = GameObject.Find("Portal_Crane");
-		crane.GetComponent<Animator>().enabled = false;
-		crane_base = crane.FindChildByName("Portal_Crane_Base");
-		crane_cab = crane_base.FindChildByName("Portal_Crane_Cab");
-
-		var postfix = craneInfo.FirstRail ? "" : " (1)";
-		var craneRail = crane.transform.parent.Find($"CraneRail{postfix}/HarborFloorRail");
-
-		//todo center is not on ground
-		var areaCenter = craneRail.position +
-			(craneInfo.PlaceContainersRightOfRail ? craneRail.right : -craneRail.right) * 5f;
-		containerArea = new ContainerArea(areaCenter, craneRail.rotation, craneRail.forward);
+		var craneFoundationObject = GameObject.Find("Portal_Crane");
+		crane = craneFoundationObject.AddComponent<Crane>();
+		crane.Initialize(craneInfo);
 		
-		var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-		cube.transform.SetParent(craneRail);
-		cube.transform.localPosition = Vector3.zero;
-		cube.transform.localEulerAngles = Vector3.zero;
+		var craneFoundationTransform = craneFoundationObject.transform;
+		
+		var areaCenter = craneFoundationTransform.position +
+			(crane.info.PlaceContainersAtLongSideOfCrane ?
+			-craneFoundationTransform.forward :
+			craneFoundationTransform.forward)
+			* 15f;
+
+		var containerAreaObject = Utilities.CreateGameObject(craneFoundationTransform, areaCenter, craneFoundationTransform.rotation, nameof(ContainerArea));
+		containerArea = containerAreaObject.AddComponent<ContainerArea>();
 
 		initialized = true;
 	}
-	
+
 	protected override void OnLeverPositionChange(int positionState)
 	{
 		switch (positionState)
@@ -175,39 +167,15 @@ public class ContainerMachine: AdvancedMachine
 			{
 				var trainCar = taskCar.TrainCar();
 				var containerInfo = containerArea.GetContainerObject(taskCar);
-				var containerObject = containerInfo.gameObject;
+				var containerTransform = containerInfo.gameObject.transform;
 				anythingProcessed = true;
 			
 				SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
 				SetDisplayDescriptionText($"Loading {cargoName} onto {taskCar.ID}");
 				
-				var carTransform = trainCar.transform;
-				var containerTransform = containerObject.transform;
-				
-				//move it:
-				//up
-				var target = new Vector3(containerTransform.position.x, containerArea.center.y + 4f, containerTransform.position.z);
-				do
-				{
-					yield return null;
-				}
-				while (!containerTransform.MoveTowards(target, craneSpeed * Time.deltaTime));
-				
-				//to above the car
-				do
-				{
-					yield return null;
-					target = new Vector3(carTransform.position.x, containerTransform.position.y, carTransform.position.z);
-				}
-				while (!containerTransform.MoveTowards(target, craneSpeed * Time.deltaTime));
-				
-				//down
-				do
-				{
-					yield return null;
-					target = carTransform.position;
-				}
-				while (!containerTransform.MoveTowards(target, craneSpeed * Time.deltaTime));
+				yield return crane.MoveTo(containerTransform.position + containerInfo.roofOffset);
+				crane.Grab(containerTransform);
+				yield return crane.MoveTo(trainCar.transform.position + containerInfo.roofOffset);
 				
 				containerArea.Destroy(containerInfo);
 				
@@ -215,7 +183,6 @@ public class ContainerMachine: AdvancedMachine
 				//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
 				trainCar.CargoModelController.currentCargoModelIndex = containerInfo.cargoModelIndex;
 				taskCar.LoadCargo(amountToLoad, task.cargoType, VanillaMachineController.warehouseMachine);
-				//todo fakecargo ook amount?
 			}
 		}
 		

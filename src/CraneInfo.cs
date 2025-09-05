@@ -4,19 +4,16 @@ public class CraneInfo
 {
 	public readonly Utilities.MinMax base_minmax; //todo dynamic
 	public static readonly Utilities.MinMax cab_minmax = new(-16, 19.5f);
-	public readonly bool FirstRail;
-	public readonly bool PlaceContainersRightOfRail;
+	public readonly bool PlaceContainersAtLongSideOfCrane;
 
-	private CraneInfo(Utilities.MinMax base_minmax_, bool firstRail, bool placeContainersRightOfRail)
+	private CraneInfo(Utilities.MinMax base_minmax_, bool placeContainersAtLongSideOfCrane)
 	{
 		base_minmax = base_minmax_;
-		FirstRail = firstRail;
-		PlaceContainersRightOfRail = placeContainersRightOfRail;
+		PlaceContainersAtLongSideOfCrane = placeContainersAtLongSideOfCrane;
 	}
 
 	private static readonly CraneInfo GF = new(
 		new Utilities.MinMax(-85.5f, 71),
-		true,
 		true
 	);
 
