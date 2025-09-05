@@ -343,7 +343,7 @@ public class BulkMachine: AdvancedMachine
 			}
 		
 			var logicCar = carUnderLoader.logicCar;
-			Main.Debug($"LoadedCargoAmount: {logicCar.LoadedCargoAmount} capacity: {logicCar.capacity}");
+			Main.DebugVerbose($"LoadedCargoAmount: {logicCar.LoadedCargoAmount} capacity: {logicCar.capacity}");
 		
 			//full
 			if (logicCar.LoadedCargoAmount >= logicCar.capacity)
@@ -423,16 +423,16 @@ public class BulkMachine: AdvancedMachine
 		// DV remembers the amount of cargo on a car in units, not kg. For example, the open hoppers can carry 1 unit of coal, which is 56000 kg.
 		var unitsToLoad = kgToLoad / cargoToLoadV2.massPerUnit;
 		
-		Main.Debug($"{nameof(DoLoadStep)}: {kgToLoad} kg, {unitsToLoad} units");
+		Main.DebugVerbose($"{nameof(DoLoadStep)}: {kgToLoad} kg, {unitsToLoad} units");
 			
 		// prevent overfill
 		if (logicCar.LoadedCargoAmount + unitsToLoad >= logicCar.capacity)
 		{
-			Main.Debug($"{nameof(DoLoadStep)}: {logicCar.LoadedCargoAmount} + {unitsToLoad} >= {logicCar.capacity} ");
+			Main.DebugVerbose($"{nameof(DoLoadStep)}: {logicCar.LoadedCargoAmount} + {unitsToLoad} >= {logicCar.capacity} ");
 			
 			//fill to capacity
 			unitsToLoad = logicCar.capacity - logicCar.LoadedCargoAmount;
-			Main.Debug($"{nameof(DoLoadStep)}: {unitsToLoad} units");
+			Main.DebugVerbose($"{nameof(DoLoadStep)}: {unitsToLoad} units");
 		}
 		
 		// the following line prevents an exception in Car.LoadCargo
@@ -445,7 +445,6 @@ public class BulkMachine: AdvancedMachine
 	private void StartLoading()
 	{
 		if(cargoIsFlowing) return;
-		
 		Main.Debug(nameof(StartLoading));
 
 		foreach (ParticleSystem raycastFlowingEffect in raycastFlowingEffects)

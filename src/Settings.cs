@@ -7,6 +7,7 @@ namespace better_loading;
 public class Settings: UnityModManager.ModSettings
 {
 	public bool EnableDebugLog = false;
+	public bool EnableVerboseDebugLog = false;
 	public bool EnableDebugBoxes = false;
 	
 	private const float REALISTIC_MULTIPLIER = 1f;
@@ -82,6 +83,10 @@ public class Settings: UnityModManager.ModSettings
 		GUILayout.Space(20f);
 		
 		EnableDebugLog = GUILayout.Toggle(EnableDebugLog, "Enable debug logging");
+		if (EnableDebugLog)
+		{
+			EnableVerboseDebugLog = GUILayout.Toggle(EnableVerboseDebugLog, "Enable verbose debug logging");
+		}
 		EnableDebugBoxes = GUILayout.Toggle(EnableDebugBoxes, "Enable debug boxes");
 	}
 

@@ -70,5 +70,11 @@ namespace better_loading
 			if(!MySettings.EnableDebugLog) return;
 			myModEntry.Logger.Log($"[DEBUG] {message}");
 		}
+		
+		public static void DebugVerbose(object message)
+		{
+			if(!MySettings.EnableVerboseDebugLog) return;
+			Debug($"[DEBUG] {message}");
+		}
 	}
 }
