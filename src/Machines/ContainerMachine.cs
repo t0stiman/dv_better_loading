@@ -191,6 +191,9 @@ public class ContainerMachine: AdvancedMachine
 		{
 			//todo unloading
 		}
+
+		//to idle position
+		StartCoroutine(crane.MoveToHorizontalMoveAltitude());
 		
 		if (anythingProcessed)
 		{

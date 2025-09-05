@@ -7,7 +7,8 @@ public class Crane: MonoBehaviour
 {
 	private const float CRANE_SPEED = 2f;
 	private const float CLOSE_ENOUGH = 0.01f;
-	private const float HORIZONTAL_MOVE_ALTITUDE_LOCAL = 4f;
+	private readonly float CLOSE_ENOUGH_SQUARED = Mathf.Pow(CLOSE_ENOUGH, 2);
+	private const float HORIZONTAL_MOVE_ALTITUDE_LOCAL = 6.3f;
 	
 	//the bottom part of the crane, that drives on rails 
 	private Transform based; //can't name this 'base'
@@ -35,23 +36,67 @@ public class Crane: MonoBehaviour
 
 	public IEnumerator MoveTo(Vector3 targetWorldPosition)
 	{
-		Vector3 positionDelta;
+		if(Vector3.Distance(targetWorldPosition, grabber.position) <= CLOSE_ENOUGH) yield break;
 		
+		//up
+		Main.Debug($"{nameof(Crane)}.{nameof(MoveTo)} up");
+		yield return MoveToHorizontalMoveAltitude();
+
+		//sideways
+		{
+			Main.Debug($"{nameof(Crane)}.{nameof(MoveTo)} sideways");
+			Vector3 positionDelta;
+			do
+			{
+				yield return null;
+
+				positionDelta = targetWorldPosition - grabber.position;
+				var localPositionDelta = grabber.InverseTransformDirection(positionDelta);
+				var maxStepSize = Time.deltaTime * CRANE_SPEED;
+				
+				cab.Translate(localPositionDelta.OnlyZ().ClampMagnitude(maxStepSize), Space.Self);
+				based.Translate(localPositionDelta.OnlyX().ClampMagnitude(maxStepSize), Space.Self);
+
+			} while (positionDelta.OnlyXAndZ().sqrMagnitude > CLOSE_ENOUGH_SQUARED);
+		}
+		
+		//down
+		{
+			Main.Debug($"{nameof(Crane)}.{nameof(MoveTo)} down");
+			Vector3 positionDelta;
+			do
+			{
+				yield return null;
+
+				positionDelta = targetWorldPosition - grabber.position;
+				var localPositionDelta = grabber.InverseTransformDirection(positionDelta);
+				var maxStepSize = Time.deltaTime * CRANE_SPEED;
+
+				grabber.Translate(localPositionDelta.OnlyY().ClampMagnitude(maxStepSize), Space.Self);
+				cab.Translate(localPositionDelta.OnlyZ().ClampMagnitude(maxStepSize), Space.Self);
+				based.Translate(localPositionDelta.OnlyX().ClampMagnitude(maxStepSize), Space.Self);
+
+			} while (positionDelta.sqrMagnitude > CLOSE_ENOUGH_SQUARED);
+		}
+		
+		Main.Debug($"{nameof(Crane)}.{nameof(MoveTo)} done");
+	}
+
+	public IEnumerator MoveToHorizontalMoveAltitude()
+	{
+		float localYDelta;
 		do
 		{
 			yield return null;
-			var stepSize = Time.deltaTime * CRANE_SPEED;
-			positionDelta = targetWorldPosition - grabber.position;
-			var localPositionDelta = grabber.InverseTransformDirection(positionDelta);
 			
-			grabber.Translate(localPositionDelta.OnlyY().ClampMagnitude(stepSize), Space.Self);
-			cab.Translate(localPositionDelta.OnlyZ().ClampMagnitude(stepSize), Space.Self);
-			based.Translate(localPositionDelta.OnlyX().ClampMagnitude(stepSize), Space.Self);
+			localYDelta = HORIZONTAL_MOVE_ALTITUDE_LOCAL - grabber.localPosition.y;
+			var maxStepSize = Time.deltaTime * CRANE_SPEED;
+			var step = new Vector3(0, localYDelta < maxStepSize ? localYDelta : maxStepSize, 0);
 			
-		} while (positionDelta.magnitude > CLOSE_ENOUGH); //todo sqrMagnitude
+			grabber.Translate(step, Space.Self);
+
+		} while (Mathf.Abs(localYDelta) > CLOSE_ENOUGH);
 	}
-	
-	//todo constraints
 
 	public void Grab(Transform toGrab)
 	{

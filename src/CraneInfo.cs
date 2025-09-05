@@ -2,7 +2,7 @@
 
 public class CraneInfo
 {
-	public readonly Utilities.MinMax base_minmax; //todo dynamic
+	public readonly Utilities.MinMax base_minmax;
 	public static readonly Utilities.MinMax cab_minmax = new(-16, 19.5f);
 	public readonly bool PlaceContainersAtLongSideOfCrane;
 
