@@ -61,9 +61,9 @@ public class WarehouseMachineController_Start_Patch
 		var stationID = StationController.allStations
 			.First(station => station.warehouseMachineControllers.Contains(__instance)).stationInfo.YardID;
 
-		if (IndustryBuildingInfo.TryGetInfo(stationID, out var buildingInfo))
+		if (BulkLoaderInfo.TryGetInfo(stationID, out var loaderInfo))
 		{
-			CreateBulkMachine(__instance, buildingInfo);
+			CreateBulkMachine(__instance, loaderInfo);
 		}
 		else if (CraneInfo.TryGetInfo(stationID, out var craneInfo))
 		{
@@ -75,8 +75,10 @@ public class WarehouseMachineController_Start_Patch
 		}
 	}
 
-	private static void CreateBulkMachine(WarehouseMachineController machineController,
-		IndustryBuildingInfo industryBuildingInfo)
+	private static void CreateBulkMachine(
+		WarehouseMachineController machineController,
+		BulkLoaderInfo loaderInfo
+	)
 	{
 		var cargoTypes = machineController.supportedCargoTypes.Where(BulkMachine.IsCargoTypeSupported).ToArray();
 		if (cargoTypes.Length == 0) return;
@@ -85,20 +87,22 @@ public class WarehouseMachineController_Start_Patch
 
 		var copy = Object.Instantiate(
 			machineController.gameObject,
-			machineController.transform.position + model.forward * 2,
+			machineController.transform.position + model.forward * -2,
 			machineController.transform.rotation,
 			machineController.transform.parent
 		);
 
 		copy.name = machineController.gameObject.name.Replace("(Clone)", "").Replace("Warehouse", "Bulk");
 
-		var bulkMachine = copy.AddComponent<BulkMachine>();
+		BulkMachine bulkMachine = loaderInfo.isLoader ? copy.AddComponent<BulkLoader>() : copy.AddComponent<BulkUnloader>();
 		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
 		if (!clonedMachineController)
 		{
 			Main.Error("Unable to get clonedMachineController");
 		}
-		bulkMachine.PreStart(machineController, clonedMachineController, cargoTypes, industryBuildingInfo);
+
+		bulkMachine.LoaderInfo = loaderInfo;
+		bulkMachine.PreStart(machineController, clonedMachineController, cargoTypes);
 	}
 
 	private static void CreateContainerMachine(WarehouseMachineController machineController, CraneInfo craneInfo)

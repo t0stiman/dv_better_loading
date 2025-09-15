@@ -1,19 +1,19 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
-using DV.Utils;
 using HarmonyLib;
 using UnityEngine;
 
 namespace better_loading.Patches;
 
 /// <summary>
-/// visual cargo loading (bulk cargo)
+/// Common code for the loading and unloading patches in this file 
 /// </summary>
-[HarmonyPatch(typeof(CargoModelController))]
-[HarmonyPatch(nameof(CargoModelController.OnCargoLoaded))]
-public class CargoModelController_OnCargoLoaded_Patch 
+public static class CMCPatchesShared
 {
+	public static AudioClip ChingSound;
+	
 	private record struct CarWithCargo(TrainCarType_v2 CarType, CargoType CargoType)
 	{
 		public readonly TrainCarType_v2 CarType = CarType;
@@ -26,30 +26,19 @@ public class CargoModelController_OnCargoLoaded_Patch
 		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.IronOre), new Utilities.MinMax(-1.2f, 0f)},
 	};
 	
-	private static bool Prefix(CargoModelController __instance, CargoType _)
+	public static void PlayCarFullEmptySound(Transform soundSource, string fullOrEmpty)
 	{
-		if(!BulkMachine.IsCargoTypeSupported(_)) return true;
+		Main.Debug($"Car is {fullOrEmpty}, playing sound");
 
-		if (!__instance.currentCargoModel)
-		{
-			CreateCargoModel(__instance, _);
-		}
-
-		if (__instance.trainCar.IsCargoLoadedUnloadedByMachine &&
-		    __instance.trainCar.IsFull())
-		{
-			PlayCarFullSound(__instance);
-		}
-
-		UpdateCargoLevel(__instance, _);
-
-		return false;
+		ChingSound.Play(soundSource.position,
+			maxDistance: 100f, // value copy-pasted from PitStop
+			parent: soundSource);
 	}
 	
-	private static void UpdateCargoLevel(CargoModelController modelController, CargoType cargoType)
+	public static void UpdateCargoLevel(CargoModelController modelController, CargoType cargoType, bool isLoading)
 	{
 		var cargoTransform = modelController.currentCargoModel.transform;
-		var trainCarType = modelController.trainCar.carType.ToV2().parentType;
+		var trainCarType = modelController.trainCar.carLivery.parentType;
 		
 		if (fullySupportedCarTypes.TryGetValue(new CarWithCargo(trainCarType, cargoType), out var minMax))
 		{
@@ -59,19 +48,43 @@ public class CargoModelController_OnCargoLoaded_Patch
 		}
 		else
 		{
-			cargoTransform.gameObject.SetActive(modelController.trainCar.IsFull());
+			if (isLoading && modelController.trainCar.IsFull())
+			{
+				cargoTransform.gameObject.SetActive(true);
+			}
+			else if (!isLoading && modelController.trainCar.IsEmpty())
+			{
+				cargoTransform.gameObject.SetActive(false);
+			}
 		}
 	}
+}
 
-	private static void PlayCarFullSound(CargoModelController __instance)
+/// <summary>
+/// visual cargo loading (bulk cargo)
+/// </summary>
+[HarmonyPatch(typeof(CargoModelController))]
+[HarmonyPatch(nameof(CargoModelController.OnCargoLoaded))]
+public class CargoModelController_OnCargoLoaded_Patch 
+{
+	private static bool Prefix(CargoModelController __instance, CargoType _)
 	{
-		Main.Debug("Car is full, playing sound");
-		
-		SingletonBehaviour<AudioManager>.Instance.cargoLoadUnload?.Play(
-			__instance.trainCar.transform.position,
-			minDistance: 10f,
-			parent: __instance.trainCar.transform
-		);
+		if(!BulkMachine.IsCargoTypeSupported(_)) return true;
+
+		if (!__instance.currentCargoModel)
+		{
+			CreateCargoModel(__instance, _);
+		}
+
+		var trainCar =  __instance.trainCar;
+		if (trainCar.IsCargoLoadedUnloadedByMachine &&
+		    trainCar.IsFull())
+		{
+			CMCPatchesShared.PlayCarFullEmptySound(trainCar.transform, "full");
+		}
+
+		CMCPatchesShared.UpdateCargoLevel(__instance, _, true);
+		return false;
 	}
 
 	private static void CreateCargoModel(CargoModelController __instance, CargoType cargoType)
@@ -92,5 +105,47 @@ public class CargoModelController_OnCargoLoaded_Patch
 		__instance.currentCargoModel.transform.localRotation = Quaternion.identity;
 		
 		__instance.trainColliders.SetupCargo(__instance.currentCargoModel);
+	}
+}
+
+/// <summary>
+/// visual cargo unloading (bulk cargo)
+/// </summary>
+[HarmonyPatch(typeof(CargoModelController))]
+[HarmonyPatch(nameof(CargoModelController.OnCargoUnloaded))]
+public class CargoModelController_OnCargoUnloaded_Patch
+{
+	private static bool Prefix(CargoModelController __instance)
+	{
+		var cargoType = __instance.trainCar.logicCar.LastUnloadedCargoType;
+		if(!BulkMachine.IsCargoTypeSupported(cargoType)) return true;
+		
+		var trainCar =  __instance.trainCar;
+		
+		if (trainCar.IsEmpty())
+		{
+			if (trainCar.IsCargoLoadedUnloadedByMachine)
+			{
+				CMCPatchesShared.PlayCarFullEmptySound(trainCar.transform, "empty");
+			}
+
+			DestroyCargoModel(__instance);
+		}
+		else
+		{
+			CMCPatchesShared.UpdateCargoLevel(__instance, cargoType, false);
+		}
+
+		return false;
+	}
+
+	private static void DestroyCargoModel(CargoModelController __instance)
+	{
+		__instance.currentCargoModelIndex = null;
+		
+		if(__instance.currentCargoModel == null) return;
+		
+		__instance.DestroyCurrentCargoModel();
+		__instance.trainColliders.SetupCargo(null);
 	}
 }

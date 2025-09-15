@@ -28,9 +28,4 @@ public static class Vector3_Extensions
 	{
 		return Vector3.ClampMagnitude(vector, maxLength);
 	}
-
-	public static Vector3 SetX(this Vector3 vector)
-	{
-		return new Vector3(vector.x, 0, 0);
-	}
 }

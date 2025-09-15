@@ -14,6 +14,11 @@ public static class Utilities
 		public readonly float minimum = minimum;
 		public readonly float maximum = maximum;
 	}
+
+	public static GameObject CreateDebugCube(Transform parent, string name = "debug cube")
+	{
+		return CreateDebugCube(parent, parent.position, parent.rotation, name);
+	}
 	
 	public static GameObject CreateDebugCube(Transform parent, Vector3 position, Quaternion rotation, string name = "debug cube")
 	{
@@ -22,16 +27,25 @@ public static class Utilities
 		cube.transform.SetParent(parent);
 		cube.transform.position = position;
 		cube.transform.rotation = rotation;
-		cube.GetComponent<MeshRenderer>().enabled = Main.MySettings.EnableDebugBoxes;
+		cube.SetActive(Main.MySettings.EnableDebugBoxes);
 		return cube;
 	}
 	
-	public static GameObject CreateGameObject(Transform parent, Vector3 position, Quaternion rotation, string name)
+	public static GameObject CreateGameObject(Transform parent, Vector3 position, Quaternion rotation, string name, bool instantiateInWorldSpace = true)
 	{
 		var obj = new GameObject(name);
 		obj.transform.SetParent(parent);
-		obj.transform.position = position;
-		obj.transform.rotation = rotation;
+		if (instantiateInWorldSpace)
+		{
+			obj.transform.position = position;
+			obj.transform.rotation = rotation;
+		}
+		else
+		{
+			obj.transform.localPosition = position;
+			obj.transform.localRotation = rotation;
+		}
+
 		return obj;
 	}
 }

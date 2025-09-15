@@ -27,14 +27,12 @@ public abstract class AdvancedMachine: MonoBehaviour
 	protected WarehouseMachineController VanillaMachineController;
 	protected WarehouseMachineController clonedMachineController;
 	
-	protected Coroutine loadUnloadCoro;
-	
+	protected Coroutine loadUnloadCoroutine;
 	protected CargoType[] cargoTypes;
-	protected CargoType_v2[] cargoTypesV2;
 	
 	#region setup
 
-	protected void PreStart(WarehouseMachineController vanillaMachineController,
+	public void PreStart(WarehouseMachineController vanillaMachineController,
 		WarehouseMachineController clonedMachineController_,
 		CargoType[] cargoTypes_)
 	{
@@ -45,7 +43,6 @@ public abstract class AdvancedMachine: MonoBehaviour
 		AllClonedMachineControllers.Add(clonedMachineController_);
 		
 		cargoTypes = cargoTypes_;
-		cargoTypesV2 = cargoTypes_.Select(v1 => v1.ToV2()).ToArray();
 		
 		FilterCargoOnScreen(vanillaMachineController, cargoTypes_, true);
 		FilterCargoOnScreen(clonedMachineController_, cargoTypes_, false);
@@ -84,7 +81,7 @@ public abstract class AdvancedMachine: MonoBehaviour
 	private void OnDisable()
 	{
 		StopAllCoroutines();
-		loadUnloadCoro = null;
+		loadUnloadCoroutine = null;
 	}
 	
 	// subscribe our callback function to RotaryStateChanged and unsubscribe the vanilla
@@ -159,7 +156,7 @@ public abstract class AdvancedMachine: MonoBehaviour
 			var loadPresentOnTrack = AnyTrainToLoadPresentOnTrack();
 			var unloadPresentOnTrack = AnyTrainToUnloadPresentOnTrack();
 	
-			var trainIsPresent = loadPresentOnTrack | unloadPresentOnTrack && loadUnloadCoro == null;
+			var trainIsPresent = loadPresentOnTrack | unloadPresentOnTrack && loadUnloadCoroutine == null;
 			if(trainIsPresent == aTrainWasPresent) continue;
 	
 			if (aTrainWasPresent)

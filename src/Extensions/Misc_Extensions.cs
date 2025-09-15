@@ -22,4 +22,9 @@ public static class Misc_Extensions
 	{
 		return car.LoadedCargoAmount >= car.capacity;
 	}
+	
+	public static bool IsEmpty(this Car car)
+	{
+		return car.LoadedCargoAmount <= 0f;
+	}
 }

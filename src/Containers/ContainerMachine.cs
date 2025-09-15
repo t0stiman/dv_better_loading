@@ -113,12 +113,12 @@ public class ContainerMachine: AdvancedMachine
 
 	private void StartTransferSequence(bool isLoading)
 	{
-		if (loadUnloadCoro != null)
+		if (loadUnloadCoroutine != null)
 			return;
 		
 		Initialize();
 		clonedMachineController.ClearTrainInRangeText();
-		loadUnloadCoro = StartCoroutine(LoadingUnloading(isLoading));
+		loadUnloadCoroutine = StartCoroutine(LoadingUnloading(isLoading));
 	}
 
 	// protected void StopTransferSequence()
@@ -210,7 +210,7 @@ public class ContainerMachine: AdvancedMachine
 		yield return clonedMachineController.StartCoroutine(clonedMachineController.ResetTextToIdleDisplay(anythingProcessed ? 
 			WarehouseMachineController.CLEAR_MACHINE_ACTION_TEXT_AFTER_TIME_LONG :
 			WarehouseMachineController.CLEAR_MACHINE_ACTION_TEXT_AFTER_TIME_SHORT));
-		loadUnloadCoro = null;
+		loadUnloadCoroutine = null;
 	}
 
 	private void MovingCarsCheck(ref WarehouseTask[] readyTasks)

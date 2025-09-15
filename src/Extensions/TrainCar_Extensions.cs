@@ -22,4 +22,9 @@ public static class TrainCar_Extensions
 	{
 		return trainCar.logicCar.IsFull();
 	}
+	
+	public static bool IsEmpty(this TrainCar trainCar)
+	{
+		return trainCar.logicCar.IsEmpty();
+	}
 }
