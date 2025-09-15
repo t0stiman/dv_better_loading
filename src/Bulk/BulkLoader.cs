@@ -15,7 +15,7 @@ public class BulkLoader: BulkMachine
 	
 	private GameObject shute;
 	private TrainCarCache previousCarCache;
-	private ShuteEffects shuteEffects;
+	private ShuteEffectsManager effectsMan;
 	
 	//true if cargo is flowing into the car
 	private bool cargoIsFlowing;
@@ -53,8 +53,9 @@ public class BulkLoader: BulkMachine
 			false
 		);
 		
-		shuteEffects = shute.AddComponent<ShuteEffects>();
-		shuteEffects.Initialize(tenderCoalModule);
+		effectsMan = shute.AddComponent<ShuteEffectsManager>();
+		effectsMan.CreateShutes(new []{Vector3.zero});
+		effectsMan.InitializeEffects();
 		
 		SetupOverlapBox(industryBuilding);
 
@@ -259,7 +260,7 @@ public class BulkLoader: BulkMachine
 		if(cargoIsFlowing) return;
 		Main.Debug(nameof(StartTransferring));
 
-		shuteEffects.StartTransferring();
+		effectsMan.StartTransferring();
 
 		cargoIsFlowing = true;
 		stopwatch = Stopwatch.StartNew();
@@ -270,7 +271,7 @@ public class BulkLoader: BulkMachine
 		if(!cargoIsFlowing) return;
 		Main.Debug($"{nameof(StopTransferring)}, {reason}");
 		
-		shuteEffects.StopTransferring(reason);
+		effectsMan.StopTransferring(reason);
 		
 		cargoIsFlowing = false;
 		stopwatch.Reset();

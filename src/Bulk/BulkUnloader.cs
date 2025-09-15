@@ -14,11 +14,11 @@ public class BulkUnloader: BulkMachine
 {
 	private List<TrainCarCache> carsOnUnloader = new();
 	
-	private record struct TrainCarCache(TrainCar trainCar, Collider collider, ShuteEffects ShuteEffects)
+	private record struct TrainCarCache(TrainCar trainCar, Collider collider, ShuteEffectsManager effects)
 	{
 		public readonly TrainCar trainCar = trainCar;
 		public readonly Collider collider = collider;
-		public readonly ShuteEffects ShuteEffects = ShuteEffects;
+		public readonly ShuteEffectsManager effects = effects;
 	}
 	
 	#region setup
@@ -123,21 +123,26 @@ public class BulkUnloader: BulkMachine
 			{
 				var trainCar = carCache.trainCar;
 				
+				if (!carCache.effects)
+				{
+					continue;
+				}
+				
 				if (!TryGetTask(trainCar, out WarehouseTask task))
 				{
-					carCache.ShuteEffects.StopTransferring("has no active task");
+					carCache.effects.StopTransferring("has no active task");
 					continue;
 				}
 
 				if (task.warehouseTaskType != WarehouseTaskType.Unloading)
 				{
-					carCache.ShuteEffects.StopTransferring($"wrong task type {task.warehouseTaskType}");
+					carCache.effects.StopTransferring($"wrong task type {task.warehouseTaskType}");
 					continue;
 				}
 				
 				if (!IsCargoTypeSupported(task.cargoType))
 				{
-					carCache.ShuteEffects.StopTransferring($"{task.cargoType} is not supported by {nameof(BulkUnloader)}");
+					carCache.effects.StopTransferring($"{task.cargoType} is not supported by {nameof(BulkUnloader)}");
 					continue;
 				}
 		
@@ -147,7 +152,7 @@ public class BulkUnloader: BulkMachine
 				//empty
 				if (logicCar.IsEmpty())
 				{
-					carCache.ShuteEffects.StopTransferring("is already empty");
+					carCache.effects.StopTransferring("is already empty");
 					continue;
 				}
 			
@@ -178,11 +183,7 @@ public class BulkUnloader: BulkMachine
 			var trainCar = overlapBoxResults[i].transform.parent.GetComponentInParent<TrainCar>(); 
 			if (trainCar)
 			{
-				if (!trainCar.gameObject.TryGetComponent<ShuteEffects>(out var effects))
-				{
-					effects = trainCar.gameObject.AddComponent<ShuteEffects>(); //todo not all traincars should get effects
-					effects.Initialize(tenderCoalModule);
-				}
+				var effects = trainCar.gameObject.GetComponent<ShuteEffectsManager>();
 				
 				carsOnUnloader.Add(new TrainCarCache(trainCar, overlapBoxResults[i], effects));
 				Main.Debug($"car under loader: {trainCar.carType}");
@@ -195,7 +196,7 @@ public class BulkUnloader: BulkMachine
 		var notFoundCars = carsOnUnloader.Where(cache => notFoundColliders.Contains(cache.collider)).ToList(); 
 		foreach (var carCache in notFoundCars)
 		{
-			carCache.ShuteEffects.StopTransferring("left the unloader");
+			carCache.effects?.StopTransferring("left the unloader");
 		}
 		
 		//remove cars from the cache that are no longer there
@@ -204,7 +205,7 @@ public class BulkUnloader: BulkMachine
 
 	private void DoUnloadStep(TrainCarCache carCache, CargoType cargoType)
 	{
-		carCache.ShuteEffects.StartTransferring();
+		carCache.effects.StartTransferring();
 		
 		var logicCar = carCache.trainCar.logicCar;
 		var cargoTypeV2 = cargoType.ToV2();
@@ -238,7 +239,7 @@ public class BulkUnloader: BulkMachine
 	{
 		foreach (var car in carsOnUnloader)
 		{
-			car.ShuteEffects.StopTransferring(reason);
+			car.effects?.StopTransferring(reason);
 		}
 		
 		SetEnabledText();

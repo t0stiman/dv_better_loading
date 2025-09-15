@@ -14,10 +14,21 @@ public class ShuteEffects: MonoBehaviour
 	private bool cargoIsFlowing = false;
 	private GameObject debugBox;
 	private bool initialized = false;
-	
+
 	public void Initialize(LocoResourceModule tenderCoalModule_)
 	{
-		// visual effects
+		InitializeVisuals(tenderCoalModule_);
+		InitializeAudio(tenderCoalModule_);
+		
+		// box
+		debugBox = Utilities.CreateDebugCube(transform, $"{nameof(ShuteEffects)} debug cube");
+
+		initialized = true;
+		Main.Debug(gameObject.GetPath());
+	}
+	
+	private void InitializeVisuals(LocoResourceModule tenderCoalModule_)
+	{
 		var effectsObject = Instantiate(
 			tenderCoalModule_.raycastFlowingEffects[0].transform.parent,
 			transform
@@ -31,17 +42,18 @@ public class ShuteEffects: MonoBehaviour
 		{
 			Main.Error("no effects");
 		}
-		
-		// audio
+	}
+	
+	private void InitializeAudio(LocoResourceModule tenderCoalModule_)
+	{
 		var original = tenderCoalModule_.audioSourcesPerFlow[(int)flowMode];
 		var audioObject = Instantiate(original.gameObject, transform);
 		audioObject.name = $"{nameof(ShuteEffects)} LoadingSound";
 		audioSource = audioObject.GetComponentInChildren<LayeredAudio>();
-		
-		// box
-		debugBox = Utilities.CreateDebugCube(transform, $"{nameof(ShuteEffects)} debug cube");
-
-		initialized = true;
+		if (!audioSource)
+		{
+			Main.Error("no audio");
+		}
 	}
 
 	private void OnDisable()

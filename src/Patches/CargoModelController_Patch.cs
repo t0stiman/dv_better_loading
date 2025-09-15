@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using HarmonyLib;
@@ -21,7 +20,8 @@ public static class CMCPatchesShared
 	}
 	
 	//only these car-cargo combinations will have a visibly rising cargo level. with others the cargo will appear when the car is full, just like the base game
-	private static readonly Dictionary<CarWithCargo, Utilities.MinMax> fullySupportedCarTypes = new() {
+	private static readonly Dictionary<CarWithCargo, Utilities.MinMax> fullySupportedCarTypes = new() 
+	{
 		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.Coal), new Utilities.MinMax(-2.8f, 0f)},
 		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.IronOre), new Utilities.MinMax(-1.2f, 0f)},
 	};

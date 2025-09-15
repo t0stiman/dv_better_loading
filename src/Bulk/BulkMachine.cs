@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using DV;
-using DV.CashRegister;
 using DV.Logic.Job;
 using DV.ThingTypes;
+using DV.ThingTypes.TransitionHelpers;
 using UnityEngine;
 
 namespace better_loading;
@@ -34,6 +34,12 @@ public abstract class BulkMachine: AdvancedMachine
 	{
 		return IsCargoTypeSupported(cargoType);
 	}
+
+	// returns true if the carType can load any bulk cargo type
+	public static bool IsCarTypeSupported(TrainCarType_v2 carType)
+	{
+		return loadUnloadSpeed.Keys.Any(cargoType => cargoType.ToV2().IsLoadableOnCarType(carType));;
+	}
 	
 	protected bool initialized = false;
 	protected bool coroutineIsRunning = false;
@@ -43,9 +49,6 @@ public abstract class BulkMachine: AdvancedMachine
 	protected static readonly LayerMask TRAINCAR_MASK = Misc_Extensions.LayerMaskFromInt(TRAINCAR_LAYER);
 	
 	protected bool timeWasFlowing;
-
-	//sound and particle effects
-	protected static LocoResourceModule tenderCoalModule;
 	
 	//box
 	protected GameObject debugBox;
@@ -64,15 +67,6 @@ public abstract class BulkMachine: AdvancedMachine
 	
 	protected void Start()
 	{
-		if (tenderCoalModule == null)
-		{
-			tenderCoalModule = CashRegisterBase.allCashRegisters
-				.OfType<CashRegisterWithModules>()
-				.SelectMany(register => register.registerModules)
-				.OfType<LocoResourceModule>()
-				.First(resourceModule => resourceModule.resourceType == ResourceType.Coal);
-		}
-		
 		SetupTexts();
 	}
 	
