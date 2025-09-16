@@ -27,7 +27,10 @@ public static class Utilities
 		cube.transform.SetParent(parent);
 		cube.transform.position = position;
 		cube.transform.rotation = rotation;
-		cube.SetActive(Main.MySettings.EnableDebugBoxes);
+		if (!Main.MySettings.EnableDebugBoxes)
+		{
+			cube.GetComponent<MeshRenderer>().enabled = false;
+		}
 		return cube;
 	}
 	

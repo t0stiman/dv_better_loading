@@ -32,7 +32,7 @@ public class TrainCarPlatesController_UpdateCargoData_Patch
 		{
 			var cargoType = __instance.trainCar.logicCar.LastUnloadedCargoType;
 			__instance.cargoTypeText = LocalizationAPI.L(cargoType.ToV2().localizationKeyShort);
-			var cargoMass = __instance.trainCar.massController.CargoMass;
+			var cargoMass = __instance.trainCar.logicCar.LoadedCargoAmount * cargoType.ToV2().massPerUnit;
 			__instance.cargoMassText = $"{Mathf.RoundToInt(cargoMass)}kg, {__instance.trainCar.GetFillPercent()}%";
 		}
 		else

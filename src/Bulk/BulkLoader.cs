@@ -17,6 +17,14 @@ public class BulkLoader: BulkMachine
 	private TrainCarCache previousCarCache;
 	private ShuteEffectsManager effectsMan;
 	
+	private const int TRAINCAR_LAYER = (int)Layers.DVLayer.Train_Big_Collider;
+	private static readonly LayerMask TRAINCAR_MASK = Misc_Extensions.LayerMaskFromInt(TRAINCAR_LAYER);
+	
+	private readonly Collider[] overlapBoxResults = new Collider[3];
+	private Vector3 overlapBoxCenter;
+	private Vector3 overlapBoxHalfSize;
+	private Quaternion overlapBoxRotation;
+	
 	//true if cargo is flowing into the car
 	private bool cargoIsFlowing;
 	private Stopwatch stopwatch = new();
@@ -69,16 +77,16 @@ public class BulkLoader: BulkMachine
 		overlapBoxHalfSize = overlapBoxSize/2f;
 		overlapBoxRotation = industryBuilding.rotation;
 		
-		debugBox = GameObject.CreatePrimitive(PrimitiveType.Cube);
-		debugBox.name = nameof(debugBox);
-		Destroy(debugBox.GetComponent<BoxCollider>());
+		overlapBoxObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+		overlapBoxObject.name = nameof(overlapBoxObject);
+		Destroy(overlapBoxObject.GetComponent<BoxCollider>());
 
-		debugBox.transform.position = overlapBoxCenter;
-		debugBox.transform.rotation = industryBuilding.rotation;
-		debugBox.transform.localScale = overlapBoxSize; //localscale == actual size
-		debugBox.transform.SetParent(industryBuilding);
+		overlapBoxObject.transform.position = overlapBoxCenter;
+		overlapBoxObject.transform.rotation = industryBuilding.rotation;
+		overlapBoxObject.transform.localScale = overlapBoxSize; //localscale == actual size
+		overlapBoxObject.transform.SetParent(industryBuilding);
 		
-		debugBox.SetActive(Main.MySettings.EnableDebugBoxes);
+		overlapBoxObject.SetActive(Main.MySettings.EnableDebugBoxes);
 	}
 	
 	protected override void SetupTexts()
@@ -104,13 +112,19 @@ public class BulkLoader: BulkMachine
 		coroutineIsRunning = false;
 		clonedMachineController.DisplayIdleText();
 		
-		if (debugBox)
+		if (overlapBoxObject)
 		{
-			debugBox.SetActive(false);
+			overlapBoxObject.SetActive(false);
 		}
 	}
 	
 	#region update
+	
+	protected void Update()
+	{
+		if(!initialized) return;
+		overlapBoxObject.SetActive(Main.MySettings.EnableDebugBoxes);
+	}
 	
 	protected override IEnumerator LoadingUnloading()
 	{

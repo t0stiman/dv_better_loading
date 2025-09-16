@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using DV;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
@@ -45,17 +44,9 @@ public abstract class BulkMachine: AdvancedMachine
 	protected bool coroutineIsRunning = false;
 	public BulkLoaderInfo LoaderInfo;
 	
-	protected const int TRAINCAR_LAYER = (int)Layers.DVLayer.Train_Big_Collider;
-	protected static readonly LayerMask TRAINCAR_MASK = Misc_Extensions.LayerMaskFromInt(TRAINCAR_LAYER);
-	
 	protected bool timeWasFlowing;
 	
-	//box
-	protected GameObject debugBox;
-	protected readonly Collider[] overlapBoxResults = new Collider[10];
-	protected Vector3 overlapBoxCenter;
-	protected Vector3 overlapBoxHalfSize;
-	protected Quaternion overlapBoxRotation;
+	protected GameObject overlapBoxObject;
 
 	#region setup
 	
@@ -108,11 +99,6 @@ public abstract class BulkMachine: AdvancedMachine
 	protected abstract void SetEnabledText();
 	
 	#region update
-
-	protected void Update()
-	{
-		debugBox?.SetActive(Main.MySettings.EnableDebugBoxes);
-	}
 
 	protected abstract IEnumerator LoadingUnloading();
 

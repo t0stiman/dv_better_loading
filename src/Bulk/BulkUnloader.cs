@@ -13,11 +13,15 @@ namespace better_loading;
 public class BulkUnloader: BulkMachine
 {
 	private List<TrainCarCache> carsOnUnloader = new();
+	private MeshRenderer overlapBoxRenderer;
+
+	// This layer is not used by DV. See DV.Layers.DVLayer .
+	private const int UNLOADER_LAYER = 18;
+	private static readonly LayerMask UNLOADER_MASK = Misc_Extensions.LayerMaskFromInt(UNLOADER_LAYER);
 	
-	private record struct TrainCarCache(TrainCar trainCar, Collider collider, ShuteEffectsManager effects)
+	private record struct TrainCarCache(TrainCar trainCar, ShuteEffectsManager effects)
 	{
 		public readonly TrainCar trainCar = trainCar;
-		public readonly Collider collider = collider;
 		public readonly ShuteEffectsManager effects = effects;
 	}
 	
@@ -46,20 +50,17 @@ public class BulkUnloader: BulkMachine
 	{
 		var box = unloadPlatform.GetComponentInChildren<BoxCollider>();
 		
-		debugBox = Utilities.CreateDebugCube(box.transform.parent, nameof(debugBox));
-		debugBox.transform.localScale = box.size;
-		debugBox.transform.localPosition = box.center; 
-		debugBox.transform.localEulerAngles = Vector3.zero;
+		overlapBoxObject = Utilities.CreateDebugCube(box.transform.parent, nameof(overlapBoxObject));
+		overlapBoxObject.transform.localScale = box.size;
+		overlapBoxObject.transform.localPosition = box.center;
+		overlapBoxObject.transform.localEulerAngles = Vector3.zero;
 		
 		//above ground
-		debugBox.transform.Translate(0, debugBox.transform.localScale.y, 0);
-
-		overlapBoxRotation = debugBox.transform.rotation;
-		overlapBoxHalfSize = debugBox.transform.lossyScale / 2f;
-		overlapBoxCenter = debugBox.transform.position;
-			
-		Destroy(debugBox.GetComponent<BoxCollider>());
-		debugBox.transform.parent = unloadPlatform;
+		overlapBoxObject.transform.Translate(0, overlapBoxObject.transform.localScale.y, 0);
+		overlapBoxObject.transform.parent = unloadPlatform;
+		
+		overlapBoxObject.layer = UNLOADER_LAYER;
+		overlapBoxRenderer = overlapBoxObject.GetComponent<MeshRenderer>();
 	}
 	
 	protected override void SetupTexts()
@@ -84,14 +85,15 @@ public class BulkUnloader: BulkMachine
 		StopCoroutine(loadUnloadCoroutine);
 		coroutineIsRunning = false;
 		clonedMachineController.DisplayIdleText();
-		
-		if (debugBox)
-		{
-			debugBox.SetActive(false);
-		}
 	}
 	
 	#region update
+	
+	protected void Update()
+	{
+		if(!initialized) return;
+		overlapBoxRenderer.enabled = Main.MySettings.EnableDebugBoxes;
+	}
 	
 	protected override IEnumerator LoadingUnloading()
 	{
@@ -119,30 +121,28 @@ public class BulkUnloader: BulkMachine
 
 			var displayDescriptionBuilder = new StringBuilder();
 
-			foreach (var carCache in carsOnUnloader)
+			foreach (var (trainCar, effects) in carsOnUnloader)
 			{
-				var trainCar = carCache.trainCar;
-				
-				if (!carCache.effects)
+				if (!effects)
 				{
 					continue;
 				}
 				
 				if (!TryGetTask(trainCar, out WarehouseTask task))
 				{
-					carCache.effects.StopTransferring("has no active task");
+					effects.StopTransferring("has no active task");
 					continue;
 				}
 
 				if (task.warehouseTaskType != WarehouseTaskType.Unloading)
 				{
-					carCache.effects.StopTransferring($"wrong task type {task.warehouseTaskType}");
+					effects.StopTransferring($"wrong task type {task.warehouseTaskType}");
 					continue;
 				}
 				
 				if (!IsCargoTypeSupported(task.cargoType))
 				{
-					carCache.effects.StopTransferring($"{task.cargoType} is not supported by {nameof(BulkUnloader)}");
+					effects.StopTransferring($"{task.cargoType} is not supported by {nameof(BulkUnloader)}");
 					continue;
 				}
 		
@@ -152,12 +152,12 @@ public class BulkUnloader: BulkMachine
 				//empty
 				if (logicCar.IsEmpty())
 				{
-					carCache.effects.StopTransferring("is already empty");
+					effects.StopTransferring("is already empty");
 					continue;
 				}
 			
-				DoUnloadStep(carCache, task.cargoType);
-				displayDescriptionBuilder.AppendLine($"{logicCar.ID} {task.cargoType.ToV2().LocalizedName()} {carCache.trainCar.GetFillPercent()}%");
+				DoUnloadStep(logicCar, effects, task.cargoType);
+				displayDescriptionBuilder.AppendLine($"{logicCar.ID} {task.cargoType.ToV2().LocalizedName()} {trainCar.GetFillPercent()}%");
 			}
 
 			SetDisplayDescriptionText(displayDescriptionBuilder.ToString());
@@ -166,48 +166,43 @@ public class BulkUnloader: BulkMachine
 	
 	private void FindCarsOnUnloader()
 	{
-		var resultsCount = Physics.OverlapBoxNonAlloc(overlapBoxCenter, overlapBoxHalfSize, overlapBoxResults, overlapBoxRotation, TRAINCAR_MASK);
+		var carsWithBothBogiesOnUnloader = VanillaMachineController.warehouseTrack.BogiesOnTrack()
+			//is in box
+			.Where(bogie => OverlapBoxContains(bogie.transform.position))
+			//group by car
+			.GroupBy(bogie => bogie.Car)
+			//both bogies need to be in position
+			.Where(group => group.Count() >= 2)
+			.Select(bogieGroup => bogieGroup.First()._car)
+			.ToArray();
 
-		var notFoundColliders = carsOnUnloader.Select(cache => cache.collider).ToList();
+		// remove TrainCars that aren't there anymore
+		foreach (var notFoundCar in carsOnUnloader.Where(cache => !carsWithBothBogiesOnUnloader.Contains(cache.trainCar)))
+		{
+			notFoundCar.effects?.StopTransferring("not there anymore");
+		}
+		carsOnUnloader.RemoveAll(cache => !carsWithBothBogiesOnUnloader.Contains(cache.trainCar));
 
-		for (int i = 0; i < resultsCount; i++)
+		var newCars = carsWithBothBogiesOnUnloader.Where(car => carsOnUnloader.All(cache => cache.trainCar != car)).ToArray();
+		foreach (var newCar in newCars)
 		{
-			// use cache to reduce calls to expensive GetComponentInParent
-			if(carsOnUnloader.Any(cache => cache.collider == overlapBoxResults[i]))
-			{
-				notFoundColliders.Remove(overlapBoxResults[i]);
-				continue;
-			}
-			
-			// on DV train cars GetComponent is sufficient, but on CCL cars the collider can be on a deeper level
-			var trainCar = overlapBoxResults[i].transform.parent.GetComponentInParent<TrainCar>(); 
-			if (trainCar)
-			{
-				var effects = trainCar.gameObject.GetComponent<ShuteEffectsManager>();
-				
-				carsOnUnloader.Add(new TrainCarCache(trainCar, overlapBoxResults[i], effects));
-				Main.Debug($"car under loader: {trainCar.carType}");
-				continue;
-			}
-			
-			Main.Error($"Could not get {nameof(TrainCar)} in '{gameObject.GetPath()}'");
+			Main.Debug($"car under loader: {newCar.carType}");
+			carsOnUnloader.Add(new TrainCarCache(newCar, newCar.gameObject.GetComponent<ShuteEffectsManager>()));
 		}
-		
-		var notFoundCars = carsOnUnloader.Where(cache => notFoundColliders.Contains(cache.collider)).ToList(); 
-		foreach (var carCache in notFoundCars)
-		{
-			carCache.effects?.StopTransferring("left the unloader");
-		}
-		
-		//remove cars from the cache that are no longer there
-		carsOnUnloader.RemoveAll(cache => notFoundColliders.Contains(cache.collider));
 	}
 
-	private void DoUnloadStep(TrainCarCache carCache, CargoType cargoType)
+	private static readonly Vector3 smallExtents = new(0.001f, 0.001f, 0.001f);
+	
+	// Returns true if position is inside overlapBox
+	private static bool OverlapBoxContains(Vector3 position)
 	{
-		carCache.effects.StartTransferring();
+		return Physics.CheckBox(position, smallExtents, Quaternion.identity, UNLOADER_MASK);
+	}
+
+	private void DoUnloadStep(Car logicCar, ShuteEffectsManager effects, CargoType cargoType)
+	{
+		effects.StartTransferring();
 		
-		var logicCar = carCache.trainCar.logicCar;
 		var cargoTypeV2 = cargoType.ToV2();
 		var kgToUnload = Main.MySettings.BulkLoadSpeedMultiplier * loadUnloadSpeed[cargoType] * Time.deltaTime;
 		

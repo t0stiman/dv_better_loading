@@ -24,7 +24,6 @@ public class ShuteEffects: MonoBehaviour
 		debugBox = Utilities.CreateDebugCube(transform, $"{nameof(ShuteEffects)} debug cube");
 
 		initialized = true;
-		Main.Debug(gameObject.GetPath());
 	}
 	
 	private void InitializeVisuals(LocoResourceModule tenderCoalModule_)
