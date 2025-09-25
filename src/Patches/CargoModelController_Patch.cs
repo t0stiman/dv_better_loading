@@ -26,13 +26,10 @@ public static class CMCPatchesShared
 		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.IronOre), new Utilities.MinMax(-1.2f, 0f)},
 	};
 	
-	public static void PlayCarFullEmptySound(Transform soundSource, string fullOrEmpty)
+	public static void PlayCarFullEmptySound(string fullOrEmpty)
 	{
 		Main.Debug($"Car is {fullOrEmpty}, playing sound");
-
-		ChingSound.Play(soundSource.position,
-			maxDistance: 100f, // value copy-pasted from PitStop
-			parent: soundSource);
+		ChingSound.Play2D();
 	}
 	
 	public static void UpdateCargoLevel(CargoModelController modelController, CargoType cargoType, bool isLoading)
@@ -80,7 +77,7 @@ public class CargoModelController_OnCargoLoaded_Patch
 		if (trainCar.IsCargoLoadedUnloadedByMachine &&
 		    trainCar.IsFull())
 		{
-			CMCPatchesShared.PlayCarFullEmptySound(trainCar.transform, "full");
+			CMCPatchesShared.PlayCarFullEmptySound("full");
 		}
 
 		CMCPatchesShared.UpdateCargoLevel(__instance, _, true);
@@ -126,7 +123,7 @@ public class CargoModelController_OnCargoUnloaded_Patch
 		{
 			if (trainCar.IsCargoLoadedUnloadedByMachine)
 			{
-				CMCPatchesShared.PlayCarFullEmptySound(trainCar.transform, "empty");
+				CMCPatchesShared.PlayCarFullEmptySound("empty");
 			}
 
 			DestroyCargoModel(__instance);
