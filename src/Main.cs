@@ -30,12 +30,14 @@ namespace better_loading
 				myHarmony.PatchAll(Assembly.GetExecutingAssembly());
 
 				SceneManager.sceneLoaded += ObjectDeleter.OnSceneLoaded;
+				SceneManager.sceneLoaded += ObjectWaiter.OnSceneLoaded;
 			}
 			catch (Exception ex)
 			{
 				modEntry.Logger.LogException($"Failed to load {modEntry.Info.DisplayName}:", ex);
 				myHarmony?.UnpatchAll(modEntry.Info.Id);
 				SceneManager.sceneLoaded -= ObjectDeleter.OnSceneLoaded;
+				SceneManager.sceneLoaded -= ObjectWaiter.OnSceneLoaded;
 				return false;
 			}
 

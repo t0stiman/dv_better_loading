@@ -81,15 +81,25 @@ public class ContainerMachine: AdvancedMachine
 	private void Start()
 	{
 		SetupTexts("Container\ntransfer");
-		clonedMachineController.DisplayIdleText();
+		clonedMachineController.DisplayIdleText(); //todo verkeerde cargos in text
+
+		StartCoroutine(Initialize());
 	}
 
-	private void Initialize()
+	private IEnumerator Initialize()
 	{
-		//todo
-		if(initialized) return;
+		//when Start() is called the crane object does not yet exist
+		ObjectWaiter.FindPlease(craneInfo.Path);
+
+		GameObject craneFoundationObject;
+		while (!ObjectWaiter.IsFound(craneInfo.Path, out craneFoundationObject))
+		{
+			yield return new WaitForSeconds(5);
+		}
 		
-		var craneFoundationObject = GameObject.Find("Portal_Crane");
+		Main.Debug($"Found {craneInfo.Path}");
+		ObjectWaiter.Deregister(craneInfo.Path);
+		
 		crane = craneFoundationObject.AddComponent<Crane>();
 		crane.Initialize(craneInfo);
 		
@@ -137,7 +147,6 @@ public class ContainerMachine: AdvancedMachine
 		if (loadUnloadCoroutine != null)
 			return;
 		
-		Initialize();
 		clonedMachineController.ClearTrainInRangeText();
 		loadUnloadCoroutine = StartCoroutine(LoadingUnloading(isLoading));
 	}

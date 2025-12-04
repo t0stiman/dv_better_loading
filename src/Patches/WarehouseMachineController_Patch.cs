@@ -65,13 +65,9 @@ public class WarehouseMachineController_Start_Patch
 		{
 			CreateBulkMachine(__instance, loaderInfo);
 		}
-		else if (CraneInfo.TryGetInfo(stationID, out var craneInfo))
+		if (CraneInfo.TryGetInfo(stationID, out var craneInfo))
 		{
 			CreateContainerMachine(__instance, craneInfo);
-		}
-		else
-		{
-			Main.Debug($"Skipping station {stationID}");
 		}
 	}
 
