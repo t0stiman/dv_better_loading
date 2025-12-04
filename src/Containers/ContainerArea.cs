@@ -1,60 +1,110 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DV.Logic.Job;
-using DV.ThingTypes;
-using DV.ThingTypes.TransitionHelpers;
 using UnityEngine;
 using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
 
 namespace better_loading;
 
 public class ContainerArea: MonoBehaviour
 {
-	private readonly List<ShippingContainer> containers = new();
-	private Quaternion containersRotation;
+	public record struct Slot(
+		int row, int column, int layer
+	);
+	
+	private const int MAX_COLUMNS = 2;
+	private const int MAX_LAYERS = 2; //vertical
+	
+	private readonly Dictionary<Slot, ShippingContainer> containers = new();
 
 	private void Start()
 	{
-		containersRotation = transform.rotation * Quaternion.Euler(0, 90, 0);
+		Utilities.CreateDebugCube(transform, nameof(ContainerArea));
 	}
 
-	public void SpawnContainers(List<Car> cars, CargoType cargoType)
+	public void SpawnContainers(WarehouseTask task)
 	{
-		foreach (var car in cars)
+		Main.Log($"[{nameof(ContainerArea)}] Spawning {task.cars.Count} containers of {task.cargoType} for job {task.Job.ID}");
+		
+		if (task.cars.Count == 0)
 		{
-			var slot = containers.Count; //todo
-			var position = transform.position + slot * 14f * transform.right;
-			var cargo = CreateContainerModel(car.TrainCar(), cargoType, position, containersRotation, out var cargoModelIndex);
-			
-			containers.Add(new ShippingContainer(cargo, car, cargoModelIndex));
-		}
-	}
-	
-	private static GameObject CreateContainerModel(TrainCar trainCar, CargoType cargoType, Vector3 position, Quaternion rotation, out byte cargoModelIndex)
-	{
-		var trainCarType = trainCar.carLivery.parentType;
-		var cargoPrefabs = cargoType.ToV2().GetCargoPrefabsForCarType(trainCarType);
-
-		if (cargoPrefabs == null || cargoPrefabs.Length == 0)
-		{
-			Main.Error($"{nameof(ContainerMachine)}.{nameof(CreateContainerModel)}: no cargo prefabs found for train car type {trainCarType.name}, cargo {cargoType}");
-			cargoModelIndex = 0;
-			return null;
+			Main.Error($"task has no cars!");
+			return;
 		}
 		
-		cargoModelIndex = (byte)Random.Range(0, cargoPrefabs.Length);
-		return Object.Instantiate(cargoPrefabs[cargoModelIndex], position, rotation);
+		var slots = GetAvailableSlots(task.cars.Count, task.Job.ID);
+		for (var carIndex = 0; carIndex < task.cars.Count; carIndex++)
+		{
+			var slot = slots[carIndex];
+			var position = GetSlotPosition(slot);
+			containers.Add(slot, new ShippingContainer(task.cars[carIndex], task, position, transform.rotation, transform));
+		}
 	}
 
-	public ShippingContainer GetContainerObject(Car car)
+	// returns the position of the slot in world space
+	private Vector3 GetSlotPosition(Slot slot)
 	{
-		return containers.First(c => c.car.ID == car.ID);
+		var containerDimensions = new Vector3(12.19f, 2.59f, 2.44f); //todo
+		
+		var localPosition = new Vector3(
+			slot.row * containerDimensions.x,
+			slot.layer * containerDimensions.y, 
+			slot.column * containerDimensions.z
+		);
+		
+		Main.Debug($"slot: {slot.row}, {slot.layer}, {slot.column} local pos: {localPosition.x}, {localPosition.y}, {localPosition.z}");
+		return transform.TransformPoint(localPosition);
 	}
 
-	public void Destroy(ShippingContainer aShippingContainer)
+	private Slot[] GetAvailableSlots(int slotCount, string jobID)
 	{
-		Object.Destroy(aShippingContainer.gameObject);
-		containers.Remove(aShippingContainer);
+		//todo use jobID to group containers of same job
+		
+		var nextAvailableSlots = new Slot[slotCount];
+		var slotIndex = 0;
+
+		int row = 0;
+		while (true)
+		{
+			for (int column = 0; column < MAX_COLUMNS; column++)
+			{
+				if (containers.TryGetValue(new Slot(row, column, 0), out _)) continue;
+				// if(SlotIsTaken(row, column, 0)) continue; //todo stapelen
+
+				for (int layer = 0; layer < MAX_LAYERS; layer++)
+				{
+					nextAvailableSlots[slotIndex] = new Slot(row, column, layer);
+					slotIndex++;
+					
+					if (slotIndex == nextAvailableSlots.Length) { return nextAvailableSlots; }
+				}
+			}
+
+			row++;
+		}
+	}
+
+	public KeyValuePair<Slot, ShippingContainer> GetSlotContainerPair(Car car)
+	{
+		try
+		{
+			return containers.First(pair => pair.Value.car.ID == car.ID);
+		}
+		catch (InvalidOperationException e)
+		{
+			Main.Debug($"[{nameof(GetSlotContainerPair)}] not found. IDs:");
+			foreach (var pair in containers)
+			{
+				Main.Debug(pair.Value.car.ID);
+			}
+			throw e;
+		}
+	}
+
+	public void Destroy(KeyValuePair<Slot, ShippingContainer> pair)
+	{
+		Object.Destroy(pair.Value.containerObject);
+		containers.Remove(pair.Key);
 	}
 }

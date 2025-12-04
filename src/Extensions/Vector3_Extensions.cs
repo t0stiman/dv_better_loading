@@ -19,7 +19,7 @@ public static class Vector3_Extensions
 		return new Vector3(0, 0, vector.z);
 	}
 	
-	public static Vector3 OnlyXAndZ(this Vector3 vector)
+	public static Vector3 OnlyXZ(this Vector3 vector)
 	{
 		return new Vector3(vector.x, 0, vector.z);
 	}

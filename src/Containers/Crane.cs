@@ -33,6 +33,7 @@ public class Crane: MonoBehaviour
 		grabber.GetComponent<BoxCollider>().enabled = false;
 	}
 
+	//todo smooth acceleration
 	public IEnumerator MoveTo(Vector3 targetWorldPosition)
 	{
 		if(Vector3.Distance(targetWorldPosition, grabber.position) <= CLOSE_ENOUGH) yield break;
@@ -56,7 +57,7 @@ public class Crane: MonoBehaviour
 				cab.Translate(localPositionDelta.OnlyZ().ClampMagnitude(maxStepSize), Space.Self);
 				based.Translate(localPositionDelta.OnlyX().ClampMagnitude(maxStepSize), Space.Self);
 
-			} while (positionDelta.OnlyXAndZ().sqrMagnitude > CLOSE_ENOUGH_SQUARED);
+			} while (positionDelta.OnlyXZ().sqrMagnitude > CLOSE_ENOUGH_SQUARED);
 		}
 		
 		//down

@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
@@ -13,7 +14,9 @@ public class ContainerMachine: AdvancedMachine
 
 	private Crane crane;
 	private CraneInfo craneInfo;
-	private ContainerArea containerArea;
+	public ContainerArea MyContainerArea;
+	private Coroutine moveToHorizontalCoroutine;
+	private List<WarehouseTask> spawnQueue = new();
 	
 	public static bool IsInShippingContainer(CargoType cargoType)
 	{
@@ -61,6 +64,11 @@ public class ContainerMachine: AdvancedMachine
 		return IsInShippingContainer(cargoType);
 	}
 
+	private void OnDisable()
+	{
+		StopTransferSequence();
+	}
+
 	public void PreStart(WarehouseMachineController vanillaMachineController_,
 		WarehouseMachineController clonedMachineController_,
 		CargoType[] cargoTypes_,
@@ -78,6 +86,7 @@ public class ContainerMachine: AdvancedMachine
 
 	private void Initialize()
 	{
+		//todo
 		if(initialized) return;
 		
 		var craneFoundationObject = GameObject.Find("Portal_Crane");
@@ -90,12 +99,24 @@ public class ContainerMachine: AdvancedMachine
 			(crane.info.PlaceContainersAtLongSideOfCrane ?
 			-craneFoundationTransform.forward :
 			craneFoundationTransform.forward)
-			* 15f;
-
+			* 18.5f;
+		
 		var containerAreaObject = Utilities.CreateGameObject(craneFoundationTransform, areaCenter, craneFoundationTransform.rotation, nameof(ContainerArea));
-		containerArea = containerAreaObject.AddComponent<ContainerArea>();
+		MyContainerArea = containerAreaObject.AddComponent<ContainerArea>();
 
+		HandleSpawnQueue();
+		
 		initialized = true;
+	}
+
+	private void HandleSpawnQueue()
+	{
+		Main.Debug($"{nameof(HandleSpawnQueue)} {spawnQueue.Count}");
+		foreach (var task in spawnQueue)
+		{
+			MyContainerArea.SpawnContainers(task);
+		}
+		spawnQueue = new();
 	}
 
 	protected override void OnLeverPositionChange(int positionState)
@@ -121,15 +142,15 @@ public class ContainerMachine: AdvancedMachine
 		loadUnloadCoroutine = StartCoroutine(LoadingUnloading(isLoading));
 	}
 
-	// protected void StopTransferSequence()
-	// {
-	// 	if (loadUnloadCoro != null)
-	// 	{
-	// 		StopCoroutine(loadUnloadCoro);
-	// 	}
-	// 	
-	// 	clonedMachineController.DisplayIdleText();
-	// }
+	private void StopTransferSequence()
+	{
+		if (loadUnloadCoroutine != null)
+		{
+			StopCoroutine(loadUnloadCoroutine);
+		}
+		
+		clonedMachineController.DisplayIdleText();
+	}
 	
 	protected IEnumerator LoadingUnloading(bool isLoading)
 	{
@@ -150,13 +171,15 @@ public class ContainerMachine: AdvancedMachine
 		var readyTasks = GetReadyTasks().ToArray();
 		MovingCarsCheck(ref readyTasks);
 		Main.Debug($"{nameof(readyTasks)}: {readyTasks.Length}");
-
-		var loadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Loading).ToArray();
-
-		foreach (var task in loadTasks)
+		
+		if (readyTasks.Length > 0 && moveToHorizontalCoroutine != null)
 		{
-			containerArea.SpawnContainers(task.cars, task.cargoType);
+			StopCoroutine(moveToHorizontalCoroutine);
 		}
+
+		// ================ Loading ================
+		
+		var loadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Loading).ToArray();
 		
 		foreach (var task in loadTasks)
 		{
@@ -166,8 +189,9 @@ public class ContainerMachine: AdvancedMachine
 			foreach (var taskCar in carsToLoad)
 			{
 				var trainCar = taskCar.TrainCar();
-				var containerInfo = containerArea.GetContainerObject(taskCar);
-				var containerTransform = containerInfo.gameObject.transform;
+				var pair = MyContainerArea.GetSlotContainerPair(taskCar);
+				var containerInfo = pair.Value;
+				var containerTransform = containerInfo.containerObject.transform;
 				anythingProcessed = true;
 			
 				SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
@@ -177,7 +201,7 @@ public class ContainerMachine: AdvancedMachine
 				crane.Grab(containerTransform);
 				yield return crane.MoveTo(trainCar.transform.position + containerInfo.roofOffset);
 				
-				containerArea.Destroy(containerInfo);
+				MyContainerArea.Destroy(pair);
 				
 				var amountToLoad = task.cargoAmount >= taskCar.capacity ? taskCar.capacity : task.cargoAmount;
 				//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
@@ -186,6 +210,8 @@ public class ContainerMachine: AdvancedMachine
 			}
 		}
 		
+		// ================ Unloading ================
+		
 		var unloadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Unloading).ToArray();
 		foreach (var task in unloadTasks)
 		{
@@ -193,7 +219,7 @@ public class ContainerMachine: AdvancedMachine
 		}
 
 		//to idle position
-		StartCoroutine(crane.MoveToHorizontalMoveAltitude());
+		moveToHorizontalCoroutine = StartCoroutine(crane.MoveToHorizontalMoveAltitude());
 		
 		if (anythingProcessed)
 		{
@@ -229,5 +255,18 @@ public class ContainerMachine: AdvancedMachine
 	private void SetupTexts(string titleText)
 	{
 		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
+	}
+
+	public void SpawnContainers(WarehouseTask loadTask)
+	{
+		if (initialized)
+		{
+			MyContainerArea.SpawnContainers(loadTask);
+			return;
+		}
+		
+		//spawn them later
+		spawnQueue.Add(loadTask);
+		Main.Debug($"spawnQueue added -> {spawnQueue.Count}");
 	}
 }
