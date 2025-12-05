@@ -134,10 +134,10 @@ public class ContainerMachine: AdvancedMachine
 		switch (positionState)
 		{
 			case -1:
-				StartTransferSequence(false);
+				StartTransferSequence(true);
 				break;
 			case 1:
-				StartTransferSequence(true);
+				StartTransferSequence(false);
 				break;
 		}
 	}
