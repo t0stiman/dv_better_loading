@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,8 +30,6 @@ public abstract class AdvancedMachine: MonoBehaviour
 	
 	protected Coroutine loadUnloadCoroutine;
 	protected CargoType[] cargoTypes;
-	
-	#region setup
 
 	public void PreStart(WarehouseMachineController vanillaMachineController,
 		WarehouseMachineController clonedMachineController_,
@@ -45,7 +44,6 @@ public abstract class AdvancedMachine: MonoBehaviour
 		cargoTypes = cargoTypes_;
 		
 		FilterCargoOnScreen(vanillaMachineController, cargoTypes_, true);
-		FilterCargoOnScreen(clonedMachineController_, cargoTypes_, false);
 	}
 	
 	// hide == true -> Hide these cargo types from the screen of the warehouse machine
@@ -107,8 +105,6 @@ public abstract class AdvancedMachine: MonoBehaviour
 		var tmp = textTitleObject.GetComponent<TextMeshPro>();
 		tmp.SetText(text);
 	}
-	
-	#endregion
 
 	private void OnDestroy()
 	{

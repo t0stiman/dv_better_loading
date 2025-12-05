@@ -27,11 +27,9 @@ public class WarehouseMachineController_OnEnable_Patch
 	private static bool Prefix(WarehouseMachineController __instance)
 	{
 		// AdvancedMachine.AllClonedMachineControllers won't work first time
-		var isClone = AdvancedMachine.AllClonedMachineControllers.Contains(__instance) ||
+		var isAdvancedMachine = AdvancedMachine.AllClonedMachineControllers.Contains(__instance) ||
 		              __instance.gameObject.name.Contains("(Clone)");
-		if (!isClone) return true; 
-		
-		Main.Debug($"{nameof(WarehouseMachineController_OnEnable_Patch)} yes");
+		if (!isAdvancedMachine) return true;
 
 		if (!__instance.initialized)
 		{

@@ -264,6 +264,7 @@ public class ContainerMachine: AdvancedMachine
 	private void SetupTexts(string titleText)
 	{
 		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
+		FilterCargoOnScreen(clonedMachineController, cargoTypes, false);
 	}
 
 	public void SpawnContainers(WarehouseTask loadTask)
