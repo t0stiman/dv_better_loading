@@ -115,6 +115,7 @@ public abstract class AdvancedMachine: MonoBehaviour
 
 	public abstract bool IsSupportedCargoType(CargoType cargoType);
 	
+	// get all tasks which are ready for cargo transfer
 	protected IEnumerable<WarehouseTask> GetReadyTasks()
 	{
 		return VanillaMachineController.warehouseMachine.currentTasks.Where(task =>
@@ -167,6 +168,8 @@ public abstract class AdvancedMachine: MonoBehaviour
 	
 			aTrainWasPresent = trainIsPresent;
 		}
+		
+		// intentionally never returns, this coroutine will be stopped with StopCoroutine()
 	}
 	
 	protected void SetDisplayTitleText(string str)

@@ -184,38 +184,28 @@ public class ContainerMachine: AdvancedMachine
 		}
 
 		// ================ Loading ================
-		
-		var loadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Loading).ToArray();
-		
-		//todo top-level containers first
-		
-		foreach (var task in loadTasks)
-		{
-			var cargoName = task.cargoType.ToV2().LocalizedName();
 
-			var carsToLoad = task.cars.Where(tc => tc.CurrentCargoTypeInCar == CargoType.None);
-			foreach (var taskCar in carsToLoad)
-			{
-				var trainCar = taskCar.TrainCar();
-				var pair = MyContainerArea.GetSlotContainerPair(taskCar);
-				var containerInfo = pair.Value;
-				var containerTransform = containerInfo.containerObject.transform;
-				anythingProcessed = true;
+		foreach (var somethingToLoad in CreateLoadingQueue(readyTasks))
+		{
+			anythingProcessed = true;
 			
-				SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
-				SetDisplayDescriptionText($"Loading {cargoName} onto {taskCar.ID}");
-				
-				yield return crane.MoveTo(containerTransform.position + containerInfo.roofOffset);
-				crane.Grab(containerTransform);
-				yield return crane.MoveTo(trainCar.transform.position + containerInfo.roofOffset);
-				
-				MyContainerArea.Destroy(pair);
-				
-				var amountToLoad = task.cargoAmount >= taskCar.capacity ? taskCar.capacity : task.cargoAmount;
-				//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
-				trainCar.CargoModelController.currentCargoModelIndex = containerInfo.cargoModelIndex;
-				taskCar.LoadCargo(amountToLoad, task.cargoType, VanillaMachineController.warehouseMachine);
-			}
+			var trainCar = somethingToLoad.car.TrainCar();
+			var containerInfo = somethingToLoad.slotContainer.Value;
+			var containerTransform = containerInfo.containerObject.transform;
+		
+			SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
+			SetDisplayDescriptionText($"Loading {somethingToLoad.task.cargoType.ToV2().LocalizedName()} onto {somethingToLoad.car.ID}");
+			
+			yield return crane.MoveTo(containerTransform.position + containerInfo.roofOffset);
+			crane.Grab(containerTransform);
+			yield return crane.MoveTo(trainCar.transform.position + containerInfo.roofOffset);
+			
+			MyContainerArea.Destroy(somethingToLoad.slotContainer);
+			
+			var amountToLoad = somethingToLoad.task.cargoAmount >= somethingToLoad.car.capacity ? somethingToLoad.car.capacity : somethingToLoad.task.cargoAmount;
+			//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
+			trainCar.CargoModelController.currentCargoModelIndex = containerInfo.cargoModelIndex;
+			somethingToLoad.car.LoadCargo(amountToLoad, somethingToLoad.task.cargoType, VanillaMachineController.warehouseMachine);
 		}
 		
 		// ================ Unloading ================
@@ -245,6 +235,28 @@ public class ContainerMachine: AdvancedMachine
 			WarehouseMachineController.CLEAR_MACHINE_ACTION_TEXT_AFTER_TIME_LONG :
 			WarehouseMachineController.CLEAR_MACHINE_ACTION_TEXT_AFTER_TIME_SHORT));
 		loadUnloadCoroutine = null;
+	}
+
+	// Creates an ordered list of all cars that will be loaded. Top level containers need to be loaded first
+	private List<ContainerTransferQueueEntry> CreateLoadingQueue(WarehouseTask[] readyTasks)
+	{
+		var loadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Loading).ToArray();
+
+		List<ContainerTransferQueueEntry> loadingQueue = new();
+		
+		foreach (var task in loadTasks)
+		{
+			foreach (var taskCar in task.cars.Where(car => car.CurrentCargoTypeInCar == CargoType.None))
+			{
+				var pair = MyContainerArea.GetSlotContainerPair(taskCar);
+				loadingQueue.Add(new ContainerTransferQueueEntry(taskCar, pair, task));
+			}
+		}
+		
+		// From top to bottom
+		loadingQueue.Sort((x, y) => y.slotContainer.Key.layer.CompareTo(x.slotContainer.Key.layer));
+		
+		return loadingQueue;
 	}
 
 	private void MovingCarsCheck(ref WarehouseTask[] readyTasks)
