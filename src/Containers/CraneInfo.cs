@@ -2,33 +2,61 @@
 
 public class CraneInfo
 {
-	public readonly Utilities.MinMax base_minmax; //todo implement crane constraints or remove this
-	public static readonly Utilities.MinMax cab_minmax = new(-16, 19.5f);
-	public readonly bool PlaceContainersAtLongSideOfCrane;
+	public readonly float ContainerAreaOffset;
 	public readonly string Path;
 
-	private CraneInfo(Utilities.MinMax base_minmax_, 
-		bool placeContainersAtLongSideOfCrane,
-		string path)
+	private CraneInfo(
+		float containerAreaOffset,
+		string path
+		// string yard = "",
+		// string track = ""
+		)
 	{
-		base_minmax = base_minmax_;
-		PlaceContainersAtLongSideOfCrane = placeContainersAtLongSideOfCrane;
+		ContainerAreaOffset = containerAreaOffset;
 		Path = path;
 	}
 
-	private static readonly CraneInfo GF = new(
-		new Utilities.MinMax(-85.5f, 71),
-		true,
-		"Far__x12_z10_LFS/Far_SilosCranes/Portal_Crane"
-	);
-
+	// Get a CraneInfo for the station with ID stationID
 	public static bool TryGetInfo(string stationID, out CraneInfo craneInfo)
 	{
 		switch (stationID)
 		{
-			case "GF":
-				craneInfo = GF;
+			case "CW":
+				craneInfo = new CraneInfo(
+					0,
+					"Far__x1_z5_LFS/Far_SilosCranes/Portal_Crane"
+				);
 				return true;
+			
+			case "FF":
+				craneInfo = new CraneInfo(
+					18.5f,
+					"Far__x9_z13_LFS/Far_SilosCranes/Portal_Crane"
+				);
+				return true;
+			
+			case "GF":
+				craneInfo = new CraneInfo(
+					18.5f,
+					"Far__x12_z10_LFS/Far_SilosCranes/Portal_Crane"
+				);
+				return true;
+			
+			//todo HB has 3 cranes
+			case "HB":
+				craneInfo = new CraneInfo(
+					-17,
+					"Far__x12_z2_LFS/Far_Cargo Bay/SilosCranes (1)/Portal_Crane (6)"
+				);
+				return true;
+			
+			case "MF":
+				craneInfo = new CraneInfo(
+					18.5f,
+					"Far__x2_z10_LFS/Far_Station_MachineFactory/SilosCranes/Portal_Crane"
+				);
+				return true;
+
 			default:
 				craneInfo = null;
 				return false;

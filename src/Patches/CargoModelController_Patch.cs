@@ -19,7 +19,7 @@ public static class CMCPatchesShared
 		public readonly CargoType CargoType = CargoType;
 	}
 	
-	//only these car-cargo combinations will have a visibly rising cargo level. with others the cargo will appear when the car is full, just like the base game
+	// Only these car-cargo combinations will have a visibly rising cargo level. With others the cargo will appear when the car is full, just like the base game
 	private static readonly Dictionary<CarWithCargo, Utilities.MinMax> fullySupportedCarTypes = new() 
 	{
 		{new CarWithCargo(TrainCarType.HopperBrown.ToV2().parentType, CargoType.Coal), new Utilities.MinMax(-2.8f, 0f)},

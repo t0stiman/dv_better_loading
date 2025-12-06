@@ -10,6 +10,9 @@ public static class ObjectDeleter
 	//paths copy-pasted from runtime unity editor
 	private static readonly ObjectPath[] toDelete =
 	{
+		//FF
+		"Far__x9_z13_LFS/Far_Vehicles/VanSmall_White",
+		
 		//GF
 		"Far__x12_z10_LFS/Far_Containers/Container_Stack_import_clothing_variant 7",
 		"Far__x12_z10_LFS/Far_Vehicles/TrailerMedium90sTarp_01_Blue",
@@ -17,7 +20,18 @@ public static class ObjectDeleter
 		"Far__x12_z10_LFS/Far_Containers/Container_Stack_export_misc_variant 8",
 		"Far__x12_z10_LFS/Far_Containers/Container_Stack_export_misc_variant 2 (1)",
 		"Far__x12_z10_LFS/Far_Props/TrafficCone (4)",
-		"Far__x12_z10_LFS/Far_Containers/Container_Stack_export_misc_variant 2"
+		"Far__x12_z10_LFS/Far_Containers/Container_Stack_export_misc_variant 2",
+		
+		//HB
+		"Far__x12_z2_LFS/Far_Cargo Bay/Containers (1)/Harbor Container Stack Array 3/Container_Stack_import_tools_variant 2",
+		
+		//MF
+		"Far__x2_z10_LFS/Far_Station_MachineFactory/Containers/Container_Stack_export_electronics, tools and chemicals_variant_2",
+		"Far__x2_z10_LFS/Far_Station_MachineFactory/Containers/Container_Stack_export_misc_variant 2",
+		"Far__x2_z10_LFS/Far_Station_MachineFactory/Containers/Container_Stack_import_clothing_variant 5",
+		"Far__x2_z10_LFS/Far_Station_MachineFactory/Containers/Container_Stack_import_electronics_variant 3",
+		"Far__x2_z10_LFS/Far_Station_MachineFactory/Vehicles/Forklift_01 (2)",
+		"Far__x2_z10_LFS/Far_Station_MachineFactory/Vehicles/TruckMedium90s_01_Orange",
 	};
 	
 	public static void OnSceneLoaded(Scene scene, LoadSceneMode _)

@@ -80,8 +80,8 @@ public class ContainerMachine: AdvancedMachine
 
 	private void Start()
 	{
-		SetupTexts("Container\ntransfer");
-		clonedMachineController.DisplayIdleText(); //todo verkeerde cargos in text
+		SetupTexts("Container\ncrane");
+		clonedMachineController.DisplayIdleText();
 
 		StartCoroutine(Initialize());
 	}
@@ -101,15 +101,12 @@ public class ContainerMachine: AdvancedMachine
 		ObjectWaiter.Deregister(craneInfo.Path);
 		
 		crane = craneFoundationObject.AddComponent<Crane>();
-		crane.Initialize(craneInfo);
+		crane.Initialize();
 		
 		var craneFoundationTransform = craneFoundationObject.transform;
 		
 		var areaCenter = craneFoundationTransform.position +
-			(crane.info.PlaceContainersAtLongSideOfCrane ?
-			-craneFoundationTransform.forward :
-			craneFoundationTransform.forward)
-			* 18.5f;
+			craneFoundationTransform.forward * craneInfo.ContainerAreaOffset;
 		
 		var containerAreaObject = Utilities.CreateGameObject(craneFoundationTransform, areaCenter, craneFoundationTransform.rotation, nameof(ContainerArea));
 		MyContainerArea = containerAreaObject.AddComponent<ContainerArea>();
@@ -189,6 +186,8 @@ public class ContainerMachine: AdvancedMachine
 		// ================ Loading ================
 		
 		var loadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Loading).ToArray();
+		
+		//todo top-level containers first
 		
 		foreach (var task in loadTasks)
 		{

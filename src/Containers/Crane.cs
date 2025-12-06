@@ -15,13 +15,9 @@ public class Crane: MonoBehaviour
 	private Transform cab;
 	//the part of the crane that moves up and down and grabs the containers
 	private Transform grabber;
-	
-	public CraneInfo info;
 
-	public void Initialize(CraneInfo info_)
+	public void Initialize()
 	{
-		info = info_;
-		
 		gameObject.GetComponent<Animator>().enabled = false;
 		based = transform.GetChildByName("Portal_Crane_Base");
 		cab = based.GetChildByName("Portal_Crane_Cab");
@@ -32,8 +28,7 @@ public class Crane: MonoBehaviour
 		grabber.localScale = new Vector3(12, 0.01f, 2.5f);
 		grabber.GetComponent<BoxCollider>().enabled = false;
 	}
-
-	//todo smooth acceleration
+	
 	public IEnumerator MoveTo(Vector3 targetWorldPosition)
 	{
 		if(Vector3.Distance(targetWorldPosition, grabber.position) <= CLOSE_ENOUGH) yield break;
