@@ -1,7 +1,7 @@
 {
 	"Id": "better_loading",
 	"Version": "0.0.1",
-	"DisplayName": "Advanced Cargo Loading",
+	"DisplayName": "Immersive Cargo Transfers",
 	"Author": "Tostiman",
 	"EntryMethod": "better_loading.Main.Load",
 	"AssemblyName": "better_loading.dll",
