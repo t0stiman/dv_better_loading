@@ -23,27 +23,34 @@ public class ContainerArea: MonoBehaviour
 		Utilities.CreateDebugCube(transform, nameof(ContainerArea));
 	}
 
-	public void SpawnContainers(WarehouseTask task)
+	public void SpawnContainersForLoading(WarehouseTask task)
 	{
-		Main.Log($"[{nameof(ContainerArea)}] Spawning {task.cars.Count} containers of {task.cargoType} for job {task.Job.ID}");
-		
-		if (task.cars.Count == 0)
-		{
-			Main.Error($"task has no cars!");
-			return;
-		}
+		Main.Log($"[{nameof(ContainerArea)}.{nameof(SpawnContainersForLoading)}] Spawning {task.cars.Count} containers of {task.cargoType} for job {task.Job.ID}");
 		
 		var slots = GetAvailableSlots(task.cars.Count, task.Job.ID);
 		for (var carIndex = 0; carIndex < task.cars.Count; carIndex++)
 		{
 			var slot = slots[carIndex];
-			var position = GetSlotPosition(slot);
-			containers.Add(slot, new ShippingContainer(task.cars[carIndex], task, position, transform.rotation, transform));
+			var containerPosition = GetSlotPosition(slot);
+			containers.Add(slot, new ShippingContainer(task.cars[carIndex], task, containerPosition, transform.rotation, transform)); //todo the containers are sometimes rotated 180 degrees (and they aren't symmetrical)
 		}
 	}
 
+	public KeyValuePair<Slot, ShippingContainer> SpawnContainerForUnloading(WarehouseTask task, Car car)
+	{
+		Main.Log($"[{nameof(ContainerArea)}.{nameof(SpawnContainerForUnloading)}] Spawning 1 container of {task.cargoType} for job {task.Job.ID}");
+		
+		var slot = GetAvailableSlots(1, task.Job.ID)[0];
+		// container position is set in ContainerMachine.LoadingUnloading
+		var container = new ShippingContainer(car, task, Vector3.zero, transform.rotation, transform); //todo the containers are sometimes rotated 180 degrees (and they aren't symmetrical)
+		container.containerObject.SetActive(false);
+		
+		containers.Add(slot, container);
+		return new KeyValuePair<Slot, ShippingContainer>(slot, container);
+	}
+
 	// returns the position of the slot in world space
-	private Vector3 GetSlotPosition(Slot slot)
+	public Vector3 GetSlotPosition(Slot slot)
 	{
 		var containerDimensions = new Vector3(12.19f, 2.59f, 2.44f); //todo
 		
@@ -70,7 +77,6 @@ public class ContainerArea: MonoBehaviour
 			for (int column = 0; column < MAX_COLUMNS; column++)
 			{
 				if (containers.TryGetValue(new Slot(row, column, 0), out _)) continue;
-				// if(SlotIsTaken(row, column, 0)) continue; //todo stapelen
 
 				for (int layer = 0; layer < MAX_LAYERS; layer++)
 				{
@@ -91,14 +97,14 @@ public class ContainerArea: MonoBehaviour
 		{
 			return containers.First(pair => pair.Value.car.ID == car.ID);
 		}
-		catch (InvalidOperationException e)
+		catch (InvalidOperationException)
 		{
 			Main.Debug($"[{nameof(GetSlotContainerPair)}] not found. IDs:");
 			foreach (var pair in containers)
 			{
 				Main.Debug(pair.Value.car.ID);
 			}
-			throw e;
+			throw;
 		}
 	}
 
@@ -106,5 +112,10 @@ public class ContainerArea: MonoBehaviour
 	{
 		Object.Destroy(pair.Value.containerObject);
 		containers.Remove(pair.Key);
+	}
+	
+	public void PlaceInArea(Transform toPlace)
+	{
+		toPlace.SetParent(transform, true);
 	}
 }

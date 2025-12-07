@@ -121,7 +121,13 @@ public class ContainerMachine: AdvancedMachine
 		Main.Debug($"{nameof(HandleSpawnQueue)} {spawnQueue.Count}");
 		foreach (var task in spawnQueue)
 		{
-			MyContainerArea.SpawnContainers(task);
+			if (task.cars.Count == 0)
+			{
+				Main.Error("task has no cars!");
+				continue;
+			}
+			
+			MyContainerArea.SpawnContainersForLoading(task);
 		}
 		spawnQueue = new();
 	}
@@ -185,38 +191,61 @@ public class ContainerMachine: AdvancedMachine
 
 		// ================ Loading ================
 
-		foreach (var somethingToLoad in CreateLoadingQueue(readyTasks))
+		if (isLoading)
 		{
-			anythingProcessed = true;
-			
-			var trainCar = somethingToLoad.car.TrainCar();
-			var containerInfo = somethingToLoad.slotContainer.Value;
-			var containerTransform = containerInfo.containerObject.transform;
-		
-			SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
-			SetDisplayDescriptionText($"Loading {somethingToLoad.task.cargoType.ToV2().LocalizedName()} onto {somethingToLoad.car.ID}");
-			
-			yield return crane.MoveTo(containerTransform.position + containerInfo.roofOffset);
-			crane.Grab(containerTransform);
-			yield return crane.MoveTo(trainCar.transform.position + containerInfo.roofOffset);
-			
-			MyContainerArea.Destroy(somethingToLoad.slotContainer);
-			
-			var amountToLoad = somethingToLoad.task.cargoAmount >= somethingToLoad.car.capacity ? somethingToLoad.car.capacity : somethingToLoad.task.cargoAmount;
-			//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
-			trainCar.CargoModelController.currentCargoModelIndex = containerInfo.cargoModelIndex;
-			somethingToLoad.car.LoadCargo(amountToLoad, somethingToLoad.task.cargoType, VanillaMachineController.warehouseMachine);
-		}
-		
-		// ================ Unloading ================
-		
-		var unloadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Unloading).ToArray();
-		foreach (var task in unloadTasks)
-		{
-			//todo unloading
+			foreach (var somethingToLoad in CreateLoadingQueue(readyTasks))
+			{
+				anythingProcessed = true;
+
+				var trainCar = somethingToLoad.car.TrainCar();
+				var containerInfo = somethingToLoad.slotContainer.Value;
+				var containerTransform = containerInfo.containerObject.transform;
+
+				SetBusyScreen(isLoading, somethingToLoad.task.cargoType, somethingToLoad.car);
+
+				// to container
+				yield return crane.MoveTo(containerTransform.position + containerInfo.roofOffset);
+				crane.Grab(containerTransform);
+				// to train car
+				yield return crane.MoveTo(trainCar.transform.position + containerInfo.roofOffset);
+
+				MyContainerArea.Destroy(somethingToLoad.slotContainer);
+				AddContainerToTrainCar(somethingToLoad.task, trainCar, somethingToLoad.slotContainer.Value.cargoModelIndex);
+			}
 		}
 
-		//to idle position
+		// ================ Unloading ================
+		
+		else
+		{
+			foreach (var somethingToUnload in CreateUnloadingQueue(readyTasks))
+			{
+				anythingProcessed = true;
+
+				var trainCar = somethingToUnload.car.TrainCar();
+				var containerInfo = somethingToUnload.slotContainer.Value;
+
+				SetBusyScreen(isLoading, somethingToUnload.task.cargoType, somethingToUnload.car);
+
+				// move crane to container on traincar
+				yield return crane.MoveTo(trainCar.CargoModelController.currentCargoModel.transform.position + containerInfo.roofOffset);
+
+				containerInfo.containerObject.transform.position =
+					trainCar.CargoModelController.currentCargoModel.transform.position;
+				RemoveContainerFromTrainCar(somethingToUnload.task, somethingToUnload.car);
+				
+				containerInfo.containerObject.SetActive(true);
+				crane.Grab(containerInfo.containerObject.transform);
+
+				// move crane to slot in ContainerArea
+				var slotPosition = MyContainerArea.GetSlotPosition(somethingToUnload.slotContainer.Key);
+				yield return crane.MoveTo(slotPosition + containerInfo.roofOffset - Vector3.up * ShippingContainer.CARGO_ORIGIN_OFFSET);
+
+				MyContainerArea.PlaceInArea(containerInfo.containerObject.transform);
+			}
+		}
+
+		// move crane to idle position
 		moveToHorizontalCoroutine = StartCoroutine(crane.MoveToHorizontalMoveAltitude());
 		
 		if (anythingProcessed)
@@ -258,6 +287,42 @@ public class ContainerMachine: AdvancedMachine
 		
 		return loadingQueue;
 	}
+	
+	private List<ContainerTransferQueueEntry> CreateUnloadingQueue(WarehouseTask[] readyTasks)
+	{
+		var unloadTasks = readyTasks.Where(task => task.warehouseTaskType == WarehouseTaskType.Unloading).ToArray();
+
+		List<ContainerTransferQueueEntry> queue = new();
+		
+		foreach (var task in unloadTasks)
+		{
+			foreach (var taskCar in task.cars.Where(car => car.CurrentCargoTypeInCar != CargoType.None))
+			{
+				var pair = MyContainerArea.SpawnContainerForUnloading(task, taskCar);
+				queue.Add(new ContainerTransferQueueEntry(taskCar, pair, task));
+			}
+		}
+		
+		// from bottom to top
+		queue.Sort((x, y) => x.slotContainer.Key.layer.CompareTo(y.slotContainer.Key.layer));
+		
+		return queue;
+	}
+	
+	private void AddContainerToTrainCar(WarehouseTask task, TrainCar trainCar, byte cargoModelIndex)
+	{
+		var logicCar = trainCar.logicCar;
+		
+		var amountToLoad = task.cargoAmount >= logicCar.capacity ? logicCar.capacity : task.cargoAmount;
+		//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
+		trainCar.CargoModelController.currentCargoModelIndex = cargoModelIndex;
+		logicCar.LoadCargo(amountToLoad, task.cargoType, VanillaMachineController.warehouseMachine);
+	}
+
+	private void RemoveContainerFromTrainCar(WarehouseTask task, Car logicCar)
+	{
+		logicCar.UnloadCargo(logicCar.LoadedCargoAmount, task.cargoType, VanillaMachineController.warehouseMachine);
+	}
 
 	private void MovingCarsCheck(ref WarehouseTask[] readyTasks)
 	{
@@ -277,12 +342,18 @@ public class ContainerMachine: AdvancedMachine
 		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
 		FilterCargoOnScreen(clonedMachineController, cargoTypes, false);
 	}
+	
+	private void SetBusyScreen(bool isLoading, CargoType cargoType, Car car)
+	{
+		SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
+		SetDisplayDescriptionText($"Loading {cargoType.ToV2().LocalizedName()} onto {car.ID}");
+	}
 
 	public void SpawnContainers(WarehouseTask loadTask)
 	{
 		if (initialized)
 		{
-			MyContainerArea.SpawnContainers(loadTask);
+			MyContainerArea.SpawnContainersForLoading(loadTask);
 			return;
 		}
 		

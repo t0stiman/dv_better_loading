@@ -7,6 +7,8 @@ namespace better_loading;
 
 public class ShippingContainer
 {
+	public const float CARGO_ORIGIN_OFFSET = 1.25f;
+	
 	//the visible game object of the container
 	public readonly GameObject containerObject;
 	//the car the container will be loaded onto
@@ -14,7 +16,7 @@ public class ShippingContainer
 	//the index of the cargo model prefab in CargoType_v2.TrainCargoToCargoPrefabs
 	public readonly byte cargoModelIndex;
 	//the task this cargo belongs to
-	public readonly WarehouseTask task; //todo do we need this
+	public readonly WarehouseTask task; //todo not used ATM, but it will be when we implement only stacking containers of the same job
 	
 	//this is used to determine where the crane needs to grab
 	public readonly Vector3 roofOffset;
@@ -33,7 +35,7 @@ public class ShippingContainer
 		containerObject.transform.Rotate(Vector3.up * 90f, Space.Self);
 		
 		//place on ground
-		containerObject.transform.Translate(Vector3.up * -1.25f);
+		containerObject.transform.Translate(Vector3.up * -CARGO_ORIGIN_OFFSET);
 		
 		{
 			var highUp = containerObject.transform.position + Vector3.up * 99f;
