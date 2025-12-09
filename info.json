@@ -1,9 +1,9 @@
 {
 	"Id": "better_loading",
 	"Version": "0.0.1",
-	"DisplayName": "Immersive Cargo Transfers",
+	"DisplayName": "Immersive Cargo Loading",
 	"Author": "Tostiman",
 	"EntryMethod": "better_loading.Main.Load",
 	"AssemblyName": "better_loading.dll",
-	"HomePage": "todo"
+	"HomePage": "https://github.com/t0stiman/dv_better_loading"
 }

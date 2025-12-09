@@ -1,0 +1,14 @@
+<Project>
+	<PropertyGroup>
+		<DvInstallDir>D:\Programs\Derail Valley</DvInstallDir>
+		<ReferencePath>
+			$(DvInstallDir)\DerailValley_Data\Managed\;
+			$(DvInstallDir)\DerailValley_Data\Managed\UnityModManager\;
+		</ReferencePath>
+		<AssemblySearchPaths>$(AssemblySearchPaths);$(ReferencePath);</AssemblySearchPaths>
+	</PropertyGroup>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<!-- Copy to game folder -->
+		<Copy SourceFiles="$(TargetPath);info.json;LICENSE" DestinationFolder="$(DvInstallDir)/Mods/better_loading" />
+	</Target>
+</Project>
