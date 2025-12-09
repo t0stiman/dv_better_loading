@@ -9,13 +9,16 @@ Derail Valley mod that overhauls the process of (un)loading cargo to make it mor
 
 ## Station and cargo support
 
-| Station              | Cargo               | Loading/unloading | 
-|----------------------|---------------------|-------------------|
-| City West            | shipping containers | loading           |
-| Coal Mine East/South | coal                | loading           |
-| Coal Plant           | coal                | unloading         |
-| Food Factory         | shipping containers | loading           |
-| Goods Factory        | shipping containers | loading           |
-| Harbor               | shipping containers | loading           |
-| Iron Mine East/West  | iron ore            | loading           |
-| Machine Factory      | shipping containers | loading           |
+| Station              | Cargo               | Loading/unloading   | 
+|----------------------|---------------------|---------------------|
+| City West            | shipping containers | loading & unloading |
+| Coal Mine East/South | coal                | loading             |
+| Coal Plant           | coal                | unloading           |
+| Food Factory         | shipping containers | loading & unloading |
+| Goods Factory        | shipping containers | loading & unloading |
+| Harbor               | shipping containers | loading & unloading |
+| Iron Mine East/West  | iron ore            | loading             |
+| Machine Factory      | shipping containers | loading & unloading |
+
+The loading of shipping containers at City South is unchanged because there is no gantry crane there.  
+Unloading of coal and iron ore at Steel Mill is on my to-do list.
