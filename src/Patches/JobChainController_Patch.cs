@@ -40,7 +40,9 @@ public class JobChainController_OnJobGenerated_Patch
 		}
 	}
 	
-	// the loading tasks are nested underneath a structure of parallel and sequential tasks, so we'll recursively search for them
+	/// <summary>
+	/// the loading tasks are nested underneath a structure of parallel and sequential tasks, so we'll recursively search for them
+	/// </summary>
 	private static List<WarehouseTask> FindLoadingTasks(Job job)
 	{
 		var loadingTasks = new List<WarehouseTask>();
@@ -54,8 +56,8 @@ public class JobChainController_OnJobGenerated_Patch
 		Main.Debug($"{nameof(FindLoadingTasks)}: loading tasks: {loadingTasks.Count}");
 		return loadingTasks;
 	}
-
-	// returns true if at least 1 loading task is found
+	
+	/// <returns>true if at least 1 loading task is found</returns>
 	private static bool FindLoadingTasks(Task parentTask, out List<WarehouseTask> loadingTasks)
 	{
 		loadingTasks = new List<WarehouseTask>();

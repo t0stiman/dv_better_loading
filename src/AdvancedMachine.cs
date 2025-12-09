@@ -58,7 +58,7 @@ public abstract class AdvancedMachine: MonoBehaviour
 			if(hide && cargoTypes.Contains(cargoType)) continue;
 			if(!hide && !cargoTypes.Contains(cargoType)) continue;
 			
-			stringBuilder.AppendLine(cargoType.ToV2().LocalizedName());
+			stringBuilder.AppendLine(cargoType.ToV2().GetLocalizedName());
 		}
 		machineController.supportedCargoTypesText = stringBuilder.ToString();
 		machineController.DisplayIdleText();

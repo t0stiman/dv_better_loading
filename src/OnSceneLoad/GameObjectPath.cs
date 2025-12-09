@@ -1,12 +1,18 @@
-﻿public record struct ObjectPath
+﻿/// <summary>
+/// Stores a path to a GameObject
+/// </summary>
+public record struct GameObjectPath
 {
 	public readonly string fullPath;
 		
 	public readonly string scene;
 	public readonly string rootObject;
+	/// <summary>
+	/// the path without scene name and root object
+	/// </summary>
 	public readonly string subPath;
 
-	public ObjectPath(string fullPath_)
+	public GameObjectPath(string fullPath_)
 	{
 		fullPath = fullPath_;
 
@@ -17,8 +23,8 @@
 		scene = rootObject.Replace("_LFS", "");
 	}
 
-	public static implicit operator ObjectPath(string fullPath)
+	public static implicit operator GameObjectPath(string fullPath)
 	{
-		return new ObjectPath(fullPath);
+		return new GameObjectPath(fullPath);
 	}
 }

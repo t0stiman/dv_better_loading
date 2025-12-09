@@ -143,6 +143,6 @@ public class WarehouseMachineController_ActivateExternally_Patch
 	{
 		return !AdvancedMachine.AllClonedMachineControllers.Contains(__instance);
 
-		//todo implement? what does it do?
+		//todo implement? what does ActivateExternally do?
 	}
 }

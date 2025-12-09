@@ -5,7 +5,9 @@ using HarmonyLib;
 
 namespace better_loading.Patches;
 
-// Prevent loading bulk cargo with the default machine
+/// <summary>
+/// Prevent loading bulk cargo with the default machine
+/// </summary>
 [HarmonyPatch(typeof(WarehouseMachine))]
 [HarmonyPatch(nameof(WarehouseMachine.AnyTrainToLoadPresentOnTrack))]
 public class WarehouseMachine_AnyTrainToLoadPresentOnTrack_Patch
@@ -50,7 +52,9 @@ public class WarehouseMachine_AnyTrainToLoadPresentOnTrack_Patch
 	}
 }
 
-// Prevent unloading bulk cargo with the default machine
+/// <summary>
+/// Prevent unloading bulk cargo with the default machine
+/// </summary>
 [HarmonyPatch(typeof(WarehouseMachine))]
 [HarmonyPatch(nameof(WarehouseMachine.AnyTrainToUnloadPresentOnTrack))]
 public class WarehouseMachine_AnyTrainToUnloadPresentOnTrack_Patch
@@ -95,7 +99,9 @@ public class WarehouseMachine_AnyTrainToUnloadPresentOnTrack_Patch
 	}
 }
 
-// Prevent (un)loading bulk cargo with the default machine
+/// <summary>
+/// Prevent (un)loading bulk cargo with the default machine
+/// </summary>
 [HarmonyPatch(typeof(WarehouseMachine))]
 [HarmonyPatch(nameof(WarehouseMachine.GetCurrentLoadUnloadData))]
 public class WarehouseMachine_GetCurrentLoadUnloadData_Patch

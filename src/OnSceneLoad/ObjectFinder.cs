@@ -4,9 +4,12 @@ using UnityEngine.SceneManagement;
 
 namespace better_loading;
 
+/// <summary>
+/// Finds objects in a scene
+/// </summary>
 public static class ObjectFinder
 {
-	public static bool FindInScene(Scene scene, ObjectPath td, out GameObject found)
+	public static bool FindInScene(Scene scene, GameObjectPath td, out GameObject found)
 	{
 		foreach (var selectedRootObject in scene.GetRootGameObjects().Where(rootObject => rootObject.name == td.rootObject))
 		{

@@ -7,10 +7,10 @@ namespace better_loading;
 
 public static class ObjectWaiter
 {
-	private static List<ObjectPath> notYetFoundObjects = new();
-	private static Dictionary<ObjectPath, GameObject> foundObjects = new();
+	private static List<GameObjectPath> notYetFoundObjects = new();
+	private static Dictionary<GameObjectPath, GameObject> foundObjects = new();
 
-	public static void FindPlease(ObjectPath aPath)
+	public static void FindPlease(GameObjectPath aPath)
 	{
 		var maybeObject = GameObject.Find(aPath.fullPath);
 		if (maybeObject)
@@ -23,12 +23,12 @@ public static class ObjectWaiter
 		notYetFoundObjects.Add(aPath);
 	}
 
-	public static bool IsFound(ObjectPath aPath, out GameObject foundObject)
+	public static bool IsFound(GameObjectPath aPath, out GameObject foundObject)
 	{
 		return foundObjects.TryGetValue(aPath, out foundObject);
 	}
 
-	public static void Deregister(ObjectPath aPath)
+	public static void Deregister(GameObjectPath aPath)
 	{
 		foundObjects.Remove(aPath);
 	}

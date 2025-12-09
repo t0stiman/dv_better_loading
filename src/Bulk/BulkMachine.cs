@@ -15,7 +15,7 @@ public abstract class BulkMachine: AdvancedMachine
 	{
 		{ CargoType.Coal, 56000 / 45f },
 		{ CargoType.IronOre, 62000 / 20f }
-		//todo
+		//todo more cargos
 		//wheat
 		//ballast?
 		//sunflower

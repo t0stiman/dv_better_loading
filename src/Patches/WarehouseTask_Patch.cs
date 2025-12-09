@@ -3,7 +3,9 @@ using HarmonyLib;
 
 namespace better_loading.Patches;
 
-// default UpdateTaskState does not support partial loading / unloading
+/// <summary>
+/// default UpdateTaskState does not support partial loading / unloading
+/// </summary>
 [HarmonyPatch(typeof(WarehouseTask))]
 [HarmonyPatch(nameof(WarehouseTask.UpdateTaskState))]
 public class WarehouseTask_UpdateTaskState_Patch

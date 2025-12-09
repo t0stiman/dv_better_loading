@@ -4,11 +4,13 @@ using UnityEngine.SceneManagement;
 
 namespace better_loading;
 
-// removes some objects that are in the way
+/// <summary>
+/// removes some objects that are in the way
+/// </summary>
 public static class ObjectDeleter
 {
 	//paths copy-pasted from runtime unity editor
-	private static readonly ObjectPath[] toDelete =
+	private static readonly GameObjectPath[] toDelete =
 	{
 		//FF
 		"Far__x9_z13_LFS/Far_Vehicles/VanSmall_White",

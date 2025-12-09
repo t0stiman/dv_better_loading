@@ -346,7 +346,7 @@ public class ContainerMachine: AdvancedMachine
 	private void SetBusyScreen(bool isLoading, CargoType cargoType, Car car)
 	{
 		SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
-		SetDisplayDescriptionText($"Loading {cargoType.ToV2().LocalizedName()} onto {car.ID}");
+		SetDisplayDescriptionText($"Loading {cargoType.ToV2().GetLocalizedName()} onto {car.ID}");
 	}
 
 	public void SpawnContainers(WarehouseTask loadTask)

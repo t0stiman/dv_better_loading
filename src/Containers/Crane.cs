@@ -10,7 +10,7 @@ public class Crane: MonoBehaviour
 	private const float HORIZONTAL_MOVE_ALTITUDE_LOCAL = 6.3f;
 	
 	//the bottom part of the crane, that drives on rails 
-	private Transform based; //can't name this 'base'
+	private Transform based; //can't call this variable 'base'
 	//the part of the crane that has the cab and connects the base with the grabber
 	private Transform cab;
 	//the part of the crane that moves up and down and grabs the containers
@@ -22,13 +22,13 @@ public class Crane: MonoBehaviour
 		based = transform.GetChildByName("Portal_Crane_Base");
 		cab = based.GetChildByName("Portal_Crane_Cab");
 		
-		//todo
 		grabber = Utilities.CreateDebugCube(cab, Vector3.zero, cab.rotation, nameof(grabber)).transform;
 		grabber.localPosition = new Vector3(0, 6.3f, -5.1f);
 		grabber.localScale = new Vector3(12, 0.01f, 2.5f);
 		grabber.GetComponent<BoxCollider>().enabled = false;
 	}
 	
+	// move the crane to targetWorldPosition
 	public IEnumerator MoveTo(Vector3 targetWorldPosition)
 	{
 		if(Vector3.Distance(targetWorldPosition, grabber.position) <= CLOSE_ENOUGH) yield break;

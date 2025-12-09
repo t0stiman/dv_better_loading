@@ -157,7 +157,7 @@ public class BulkUnloader: BulkMachine
 				}
 			
 				DoUnloadStep(logicCar, effects, task.cargoType);
-				displayDescriptionBuilder.AppendLine($"{logicCar.ID} {task.cargoType.ToV2().LocalizedName()} {trainCar.GetFillPercent()}%");
+				displayDescriptionBuilder.AppendLine($"{logicCar.ID} {task.cargoType.ToV2().GetLocalizedName()} {trainCar.GetFillPercent()}%");
 			}
 
 			SetDisplayDescriptionText(displayDescriptionBuilder.ToString());

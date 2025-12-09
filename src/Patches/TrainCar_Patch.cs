@@ -8,7 +8,9 @@ namespace better_loading.Patches;
 [HarmonyPatch(nameof(TrainCar.Awake))]
 public class TrainCar_Awake_Patch
 {
-	// positions of the unloading shutes on the bottom of the train car
+	/// <summary>
+	/// positions of the unloading shutes on the bottom of the train car
+	/// </summary>
 	private static readonly Dictionary<string, Vector3[]> TrainCarIDToShutePositions = new()
 	{
 		{ "Hopper", new[]

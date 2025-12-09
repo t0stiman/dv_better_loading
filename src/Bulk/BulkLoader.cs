@@ -266,7 +266,7 @@ public class BulkLoader: BulkMachine
 		logicCar.CurrentCargoTypeInCar = CargoType.None;
 		logicCar.LoadCargo(unitsToLoad, cargoToLoad, VanillaMachineController.warehouseMachine);
 		
-		SetDisplayDescriptionText($"Loading {carToLoad.logicCar.ID} with {cargoToLoadV2.LocalizedName()}, {carToLoad.GetFillPercent()}%");
+		SetDisplayDescriptionText($"Loading {carToLoad.logicCar.ID} with {cargoToLoadV2.GetLocalizedName()}, {carToLoad.GetFillPercent()}%");
 	}
 	
 	protected void StartTransferring()
