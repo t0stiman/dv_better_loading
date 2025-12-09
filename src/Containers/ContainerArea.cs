@@ -52,7 +52,7 @@ public class ContainerArea: MonoBehaviour
 	// returns the position of the slot in world space
 	public Vector3 GetSlotPosition(Slot slot)
 	{
-		var containerDimensions = new Vector3(12.19f, 2.59f, 2.44f); //todo
+		var containerDimensions = new Vector3(12.19f, 2.59f, 2.44f); //todo use the real dimensions of the cargo prefab
 		
 		var localPosition = new Vector3(
 			slot.row * containerDimensions.x,
@@ -60,14 +60,11 @@ public class ContainerArea: MonoBehaviour
 			slot.column * containerDimensions.z
 		);
 		
-		Main.Debug($"slot: {slot.row}, {slot.layer}, {slot.column} local pos: {localPosition.x}, {localPosition.y}, {localPosition.z}");
 		return transform.TransformPoint(localPosition);
 	}
 
 	private Slot[] GetAvailableSlots(int slotCount, string jobID)
 	{
-		//todo use jobID to group containers of same job
-		
 		var nextAvailableSlots = new Slot[slotCount];
 		var slotIndex = 0;
 
@@ -76,10 +73,17 @@ public class ContainerArea: MonoBehaviour
 		{
 			for (int column = 0; column < MAX_COLUMNS; column++)
 			{
-				if (containers.TryGetValue(new Slot(row, column, 0), out _)) continue;
+				// Only stack containers of the same job 
+				if (SlotIsTaken(row, column, 0 , out var existingContainer) &&
+				    existingContainer.task.Job.ID != jobID)
+				{
+					continue;
+				}
 
 				for (int layer = 0; layer < MAX_LAYERS; layer++)
 				{
+					if(SlotIsTaken(row, column, layer, out _)) { continue; }
+					
 					nextAvailableSlots[slotIndex] = new Slot(row, column, layer);
 					slotIndex++;
 					
@@ -89,6 +93,11 @@ public class ContainerArea: MonoBehaviour
 
 			row++;
 		}
+	}
+
+	private bool SlotIsTaken(int row, int column, int layer, out ShippingContainer existingContainer)
+	{
+		return containers.TryGetValue(new Slot(row, column, layer), out existingContainer);
 	}
 
 	public KeyValuePair<Slot, ShippingContainer> GetSlotContainerPair(Car car)

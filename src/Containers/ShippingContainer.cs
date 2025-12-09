@@ -1,5 +1,4 @@
 ﻿using DV.Logic.Job;
-using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using UnityEngine;
 
@@ -16,7 +15,7 @@ public class ShippingContainer
 	//the index of the cargo model prefab in CargoType_v2.TrainCargoToCargoPrefabs
 	public readonly byte cargoModelIndex;
 	//the task this cargo belongs to
-	public readonly WarehouseTask task; //todo not used ATM, but it will be when we implement only stacking containers of the same job
+	public readonly WarehouseTask task;
 	
 	//this is used to determine where the crane needs to grab
 	public readonly Vector3 roofOffset;
@@ -27,7 +26,7 @@ public class ShippingContainer
 	{
 		car = car_;
 		task = task_;
-		containerObject = CreateContainerModel(car.TrainCar(), task_.cargoType, position, rotation, parent, out cargoModelIndex);
+		containerObject = CreateContainerGameObject(car.TrainCar(), task_, position, rotation, parent, out cargoModelIndex);
 		
 		size = MeasureSize(containerObject);
 		
@@ -70,19 +69,21 @@ public class ShippingContainer
 		return collider.size; //assumes the object has not been scaled
 	}
 
-	private static GameObject CreateContainerModel(TrainCar trainCar, CargoType cargoType, Vector3 position, Quaternion rotation, Transform parent, out byte cargoModelIndex_)
+	private static GameObject CreateContainerGameObject(TrainCar trainCar, WarehouseTask task, Vector3 position, Quaternion rotation, Transform parent, out byte cargoModelIndex_)
 	{
 		var trainCarType = trainCar.carLivery.parentType;
-		var cargoPrefabs = cargoType.ToV2().GetCargoPrefabsForCarType(trainCarType);
+		var cargoPrefabs = task.cargoType.ToV2().GetCargoPrefabsForCarType(trainCarType);
 
 		if (cargoPrefabs == null || cargoPrefabs.Length == 0)
 		{
-			Main.Error($"{nameof(ContainerMachine)}.{nameof(CreateContainerModel)}: no cargo prefabs found for train car type {trainCarType.name}, cargo {cargoType}");
+			Main.Error($"{nameof(ContainerMachine)}.{nameof(CreateContainerGameObject)}: no cargo prefabs found for train car type {trainCarType.name}, cargo {task.cargoType}");
 			cargoModelIndex_ = 0;
 			return null;
 		}
 		
 		cargoModelIndex_ = (byte)Random.Range(0, cargoPrefabs.Length);
-		return Object.Instantiate(cargoPrefabs[cargoModelIndex_], position, rotation, parent);
+		var createdContainerObject = Object.Instantiate(cargoPrefabs[cargoModelIndex_], position, rotation, parent);
+		createdContainerObject.name = createdContainerObject.name.Replace("(Clone)", $" {task.Job.ID}");
+		return createdContainerObject;
 	}
 }
