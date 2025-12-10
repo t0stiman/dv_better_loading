@@ -30,14 +30,14 @@ public class CraneInfo
 			
 			case "FF":
 				craneInfo = new CraneInfo(
-					18.5f,
+					-18.5f,
 					"Far__x9_z13_LFS/Far_SilosCranes/Portal_Crane"
 				);
 				return true;
 			
 			case "GF":
 				craneInfo = new CraneInfo(
-					18.5f,
+					-18.5f,
 					"Far__x12_z10_LFS/Far_SilosCranes/Portal_Crane"
 				);
 				return true;
@@ -52,7 +52,7 @@ public class CraneInfo
 			
 			case "MF":
 				craneInfo = new CraneInfo(
-					18.5f,
+					-18.5f,
 					"Far__x2_z10_LFS/Far_Station_MachineFactory/SilosCranes/Portal_Crane"
 				);
 				return true;
