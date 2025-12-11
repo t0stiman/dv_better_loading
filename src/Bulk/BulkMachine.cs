@@ -59,6 +59,7 @@ public abstract class BulkMachine: AdvancedMachine
 	protected void Start()
 	{
 		SetupTexts();
+		FilterCargoOnScreen(clonedMachineController, cargoTypes, false);
 	}
 	
 	protected abstract void Initialize();
