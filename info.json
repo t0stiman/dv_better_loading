@@ -1,9 +1,10 @@
 {
-	"Id": "better_loading",
-	"Version": "0.0.1",
-	"DisplayName": "Immersive Cargo Loading",
-	"Author": "Tostiman",
-	"EntryMethod": "better_loading.Main.Load",
-	"AssemblyName": "better_loading.dll",
-	"HomePage": "https://github.com/t0stiman/dv_better_loading"
+  "Id": "better_loading",
+  "Version": "0.0.1",
+  "DisplayName": "Immersive Cargo Loading",
+  "Author": "Tostiman",
+  "EntryMethod": "better_loading.Main.Load",
+  "AssemblyName": "better_loading.dll",
+  "HomePage": "https://github.com/t0stiman/dv_better_loading",
+  "Repository": "https://raw.githubusercontent.com/t0stiman/dv_better_loading/master/repository.json"
 }

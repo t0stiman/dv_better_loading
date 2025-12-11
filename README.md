@@ -22,3 +22,7 @@ Derail Valley mod that overhauls the process of (un)loading cargo to make it mor
 
 The loading of shipping containers at City South is unchanged because there is no gantry crane there.  
 Unloading of coal and iron ore at Steel Mill is on my to-do list.
+
+## Mod settings
+
+In the mod settings you can change how fast cargo is loaded. Open the settings menu with ctrl+F10 (in game).
