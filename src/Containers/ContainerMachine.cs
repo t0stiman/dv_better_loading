@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
-using DV.ThingTypes.TransitionHelpers;
 using UnityEngine;
 
 namespace better_loading;
@@ -24,7 +23,7 @@ public class ContainerMachine: AdvancedMachine
 		
 		switch (cargoType)
 		{
-			case CargoType.ScrapContainers:
+			// case CargoType.ScrapContainers: //TODO NullReferenceException in GetSlotPosition
 			case CargoType.ElectronicsIskar:
 			case CargoType.ElectronicsKrugmann:
 			case CargoType.ElectronicsAAG:
