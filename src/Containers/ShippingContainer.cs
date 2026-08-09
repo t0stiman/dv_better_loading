@@ -26,7 +26,7 @@ public class ShippingContainer
 	{
 		car = car_;
 		task = task_;
-		containerObject = CreateContainerGameObject(car.TrainCar(), task_, position, rotation, parent, out cargoModelIndex);
+		containerObject = Utilities.InstantiateCargoPrefab(car.TrainCar(), task_, position, rotation, parent, out cargoModelIndex);
 		
 		size = MeasureSize(containerObject);
 		
@@ -67,23 +67,5 @@ public class ShippingContainer
 			collider = obj.GetComponentInChildren<BoxCollider>(true);
 		}
 		return collider.size; //assumes the object has not been scaled
-	}
-
-	private static GameObject CreateContainerGameObject(TrainCar trainCar, WarehouseTask task, Vector3 position, Quaternion rotation, Transform parent, out byte cargoModelIndex_)
-	{
-		var trainCarType = trainCar.carLivery.parentType;
-		var cargoPrefabs = task.cargoType.ToV2().GetCargoPrefabsForCarType(trainCarType);
-
-		if (cargoPrefabs == null || cargoPrefabs.Length == 0)
-		{
-			Main.Error($"{nameof(ContainerMachine)}.{nameof(CreateContainerGameObject)}: no cargo prefabs found for train car type {trainCarType.name}, cargo {task.cargoType}");
-			cargoModelIndex_ = 0;
-			return null;
-		}
-		
-		cargoModelIndex_ = (byte)Random.Range(0, cargoPrefabs.Length);
-		var createdContainerObject = Object.Instantiate(cargoPrefabs[cargoModelIndex_], position, rotation, parent);
-		createdContainerObject.name = createdContainerObject.name.Replace("(Clone)", $" {task.Job.ID}");
-		return createdContainerObject;
 	}
 }

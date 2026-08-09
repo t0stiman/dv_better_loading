@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using DV.Logic.Job;
+using DV.ThingTypes.TransitionHelpers;
+using UnityEngine;
 
 namespace better_loading;
 
@@ -53,5 +55,23 @@ public static class Utilities
 		}
 
 		return obj;
+	}
+	
+	public static GameObject InstantiateCargoPrefab(TrainCar trainCar, WarehouseTask task, Vector3 position, Quaternion rotation, Transform parent, out byte cargoModelIndex_)
+	{
+		var trainCarType = trainCar.carLivery.parentType;
+		var cargoPrefabs = task.cargoType.ToV2().GetCargoPrefabsForCarType(trainCarType);
+
+		if (cargoPrefabs == null || cargoPrefabs.Length == 0)
+		{
+			Main.Error($"{nameof(InstantiateCargoPrefab)}: no cargo prefabs found for train car type {trainCarType.name}, cargo {task.cargoType}");
+			cargoModelIndex_ = 0;
+			return null;
+		}
+		
+		cargoModelIndex_ = (byte)Random.Range(0, cargoPrefabs.Length);
+		var instantiatedCargo = Object.Instantiate(cargoPrefabs[cargoModelIndex_], position, rotation, parent);
+		instantiatedCargo.name = instantiatedCargo.name.Replace("(Clone)", $" {task.Job.ID}");
+		return instantiatedCargo;
 	}
 }
