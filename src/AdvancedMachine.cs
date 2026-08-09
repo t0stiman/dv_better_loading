@@ -8,6 +8,8 @@ using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using TMPro;
 using UnityEngine;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace better_loading;
 
@@ -191,5 +193,34 @@ public abstract class AdvancedMachine: MonoBehaviour
 		string extra = null)
 	{
 		clonedMachineController.SetScreen(preset, isLoading, jobId, car, cargoType, extra);
+	}
+	
+	protected void MovingCarsCheck(ref WarehouseTask[] readyTasks)
+	{
+		foreach (var rt in readyTasks)
+		{
+			if (!clonedMachineController.AnyCarMoving(rt.cars)) continue;
+			
+			SetScreen(WarehouseMachineController.TextPreset.Moving, rt.warehouseTaskType == WarehouseTaskType.Loading, rt.Job.ID);
+			break;
+		}
+
+		readyTasks = readyTasks.Where(t => !clonedMachineController.AnyCarMoving(t.cars)).ToArray();
+	}
+	
+	protected void SetBusyScreen(bool isLoading, CargoType cargoType, Car car)
+	{
+		SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
+		SetDisplayDescriptionText($"Loading {cargoType.ToV2().GetLocalizedName()} onto {car.ID}");
+	}
+	
+	protected void LoadTrainCar(WarehouseTask task, TrainCar trainCar, byte cargoModelIndex)
+	{
+		var logicCar = trainCar.logicCar;
+		
+		var amountToLoad = task.cargoAmount >= logicCar.capacity ? logicCar.capacity : task.cargoAmount;
+		//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
+		trainCar.CargoModelController.currentCargoModelIndex = cargoModelIndex;
+		logicCar.LoadCargo(amountToLoad, task.cargoType, VanillaMachineController.warehouseMachine);
 	}
 }

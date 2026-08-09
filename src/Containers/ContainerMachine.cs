@@ -210,7 +210,7 @@ public class ContainerMachine: AdvancedMachine
 				yield return crane.MoveTo(trainCar.transform.position + containerInfo.roofOffset);
 
 				MyContainerArea.Destroy(somethingToLoad.slotContainer);
-				AddContainerToTrainCar(somethingToLoad.task, trainCar, somethingToLoad.slotContainer.Value.cargoModelIndex);
+				LoadTrainCar(somethingToLoad.task, trainCar, somethingToLoad.slotContainer.Value.cargoModelIndex);
 			}
 		}
 
@@ -308,45 +308,16 @@ public class ContainerMachine: AdvancedMachine
 		
 		return queue;
 	}
-	
-	private void AddContainerToTrainCar(WarehouseTask task, TrainCar trainCar, byte cargoModelIndex)
-	{
-		var logicCar = trainCar.logicCar;
-		
-		var amountToLoad = task.cargoAmount >= logicCar.capacity ? logicCar.capacity : task.cargoAmount;
-		//by setting currentCargoModelIndex we ensure the container on the train car looks the same as the one we just moved
-		trainCar.CargoModelController.currentCargoModelIndex = cargoModelIndex;
-		logicCar.LoadCargo(amountToLoad, task.cargoType, VanillaMachineController.warehouseMachine);
-	}
 
 	private void RemoveContainerFromTrainCar(WarehouseTask task, Car logicCar)
 	{
 		logicCar.UnloadCargo(logicCar.LoadedCargoAmount, task.cargoType, VanillaMachineController.warehouseMachine);
 	}
 
-	private void MovingCarsCheck(ref WarehouseTask[] readyTasks)
-	{
-		foreach (var rt in readyTasks)
-		{
-			if (!clonedMachineController.AnyCarMoving(rt.cars)) continue;
-			
-			SetScreen(WarehouseMachineController.TextPreset.Moving, rt.warehouseTaskType == WarehouseTaskType.Loading, rt.Job.ID);
-			break;
-		}
-
-		readyTasks = readyTasks.Where(t => !clonedMachineController.AnyCarMoving(t.cars)).ToArray();
-	}
-
 	private void SetupTexts(string titleText)
 	{
 		ChangeText(gameObject.FindChildByName("TextTitle"), titleText);
 		FilterCargoOnScreen(clonedMachineController, cargoTypes, false);
-	}
-	
-	private void SetBusyScreen(bool isLoading, CargoType cargoType, Car car)
-	{
-		SetScreen(WarehouseMachineController.TextPreset.Busy, isLoading);
-		SetDisplayDescriptionText($"Loading {cargoType.ToV2().GetLocalizedName()} onto {car.ID}");
 	}
 
 	public void SpawnContainers(WarehouseTask loadTask)
