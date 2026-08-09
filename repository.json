@@ -2,6 +2,11 @@
   "Releases": [
     {
       "Id": "better_loading",
+      "Version": "0.0.2",
+      "DownloadUrl": "https://github.com/t0stiman/dv_better_loading/releases/download/v0.0.2/immersive_cargo_loading.zip"
+    },
+    {
+      "Id": "better_loading",
       "Version": "0.0.1",
       "DownloadUrl": "https://github.com/t0stiman/dv_better_loading/releases/download/v0.0.1/immersive_cargo_loading.zip"
     }

@@ -1,6 +1,6 @@
 {
   "Id": "better_loading",
-  "Version": "0.0.1",
+  "Version": "0.0.2",
   "DisplayName": "Immersive Cargo Loading",
   "Author": "Tostiman",
   "EntryMethod": "better_loading.Main.Load",
