@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using better_loading.Vehicles;
 using HarmonyLib;
 using UnityEngine;
 
@@ -67,8 +68,14 @@ public class WarehouseMachineController_Start_Patch
 		{
 			CreateContainerMachine(__instance, craneInfo);
 		}
+		if (CraneInfo.TryGetInfo(stationID, out var craneInfo))
+		{
+			CreateVehicleMachine(__instance);
+		}
+		//todo just use 1 machine?
 	}
 
+	//todo duplicated code
 	private static void CreateBulkMachine(
 		WarehouseMachineController machineController,
 		BulkLoaderInfo loaderInfo
@@ -122,6 +129,34 @@ public class WarehouseMachineController_Start_Patch
 			Main.Error("Unable to get clonedMachineController");
 		}
 		containerMachine.PreStart(machineController, clonedMachineController, cargoTypes, craneInfo);
+	}
+	
+	private static void CreateVehicleMachine(WarehouseMachineController machineController)
+	{
+		var cargoTypes = machineController.supportedCargoTypes.Where(VehiclesMachine.IsCargoTypeSupported).ToArray();
+		if (cargoTypes.Length == 0) return;
+
+		var model = machineController.transform.FindChildByName("WarehouseMachine model");
+
+		var copy = Object.Instantiate(
+			machineController.gameObject,
+			machineController.transform.position + model.forward * 2,
+			machineController.transform.rotation,
+			machineController.transform.parent
+		);
+
+		copy.name = machineController.gameObject.name.Replace("(Clone)", "").Replace("Warehouse", "Vehicle");
+		
+		var clonedMachineController = copy.GetComponent<WarehouseMachineController>();
+		if (!clonedMachineController)
+		{
+			Main.Error("Unable to get clonedMachineController");
+			GameObject.Destroy(copy);
+			return;
+		}
+		
+		var vehiclesMachine = copy.AddComponent<VehiclesMachine>();
+		vehiclesMachine.PreStart(machineController, clonedMachineController, cargoTypes);
 	}
 }
 
