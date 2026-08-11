@@ -5,45 +5,6 @@ using UnityEngine;
 namespace better_loading.Patches;
 
 [HarmonyPatch(typeof(WarehouseMachineController))]
-[HarmonyPatch(nameof(WarehouseMachineController.Awake))]
-public class WarehouseMachineController_Awake_Patch
-{
-	private static bool Prefix(WarehouseMachineController __instance)
-	{
-		// AdvancedMachine.AllClonedMachineControllers won't work here yet
-		var isClone = __instance.gameObject.name.Contains("(Clone)");
-		if (isClone)
-		{
-			Main.Debug($"{nameof(WarehouseMachineController_Awake_Patch)} skipping");
-		}
-		return !isClone;
-	}
-}
-
-[HarmonyPatch(typeof(WarehouseMachineController))]
-[HarmonyPatch(nameof(WarehouseMachineController.OnEnable))]
-public class WarehouseMachineController_OnEnable_Patch
-{
-	private static bool Prefix(WarehouseMachineController __instance)
-	{
-		// AdvancedMachine.AllClonedMachineControllers won't work first time
-		var isAdvancedMachine = AdvancedMachine.AllClonedMachineControllers.Contains(__instance) ||
-		              __instance.gameObject.name.Contains("(Clone)");
-		if (!isAdvancedMachine) return true;
-
-		if (!__instance.initialized)
-		{
-			__instance.StartCoroutine(__instance.InitLeverHJAF());
-		}
-
-		// don't start TrainInRangeCheck, that's in AdvancedMachine.OnEnable
-		__instance.DisplayIdleText();
-		
-		return false;
-	}
-}
-
-[HarmonyPatch(typeof(WarehouseMachineController))]
 [HarmonyPatch(nameof(WarehouseMachineController.Start))]
 public class WarehouseMachineController_Start_Patch
 {
@@ -122,27 +83,5 @@ public class WarehouseMachineController_Start_Patch
 			Main.Error("Unable to get clonedMachineController");
 		}
 		containerMachine.PreStart(machineController, clonedMachineController, cargoTypes, craneInfo);
-	}
-}
-
-[HarmonyPatch(typeof(WarehouseMachineController))]
-[HarmonyPatch(nameof(WarehouseMachineController.OnDestroy))]
-public class WarehouseMachineController_OnDestroy_Patch 
-{
-	private static void Prefix(WarehouseMachineController __instance)
-	{
-		AdvancedMachine.AllClonedMachineControllers.Remove(__instance);
-	}
-}
-
-[HarmonyPatch(typeof(WarehouseMachineController))]
-[HarmonyPatch(nameof(WarehouseMachineController.ActivateExternally))]
-public class WarehouseMachineController_ActivateExternally_Patch 
-{
-	private static bool Prefix(WarehouseMachineController __instance)
-	{
-		return !AdvancedMachine.AllClonedMachineControllers.Contains(__instance);
-
-		//todo implement? what does ActivateExternally do?
 	}
 }

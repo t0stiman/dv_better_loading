@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,8 +7,6 @@ using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using TMPro;
 using UnityEngine;
-using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
 
 namespace better_loading;
 
