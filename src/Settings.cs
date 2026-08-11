@@ -6,13 +6,18 @@ namespace better_loading;
 
 public class Settings: UnityModManager.ModSettings
 {
+	public bool AllowUsingDefaultMachine = true;
+	
+	// debug
 	public bool EnableDebugLog = false;
 	public bool EnableVerboseDebugLog = false;
 	public bool EnableDebugBoxes = false;
 	
+	
 	private const float REALISTIC_MULTIPLIER = 1f;
 	
-	//bulk
+	
+	// bulk cargo
 	private const float BULK_CONVENIENT_MULTIPLIER = 4f;
 	private const float BULK_FAST_MULTIPLIER = 8f;
 	
@@ -23,9 +28,10 @@ public class Settings: UnityModManager.ModSettings
 		LoadSpeedPreset.Fast => BULK_FAST_MULTIPLIER,
 		_ => throw new ArgumentOutOfRangeException()
 	};
-	public LoadSpeedPreset BulkLoadSpeedPreset = LoadSpeedPreset.Convenient;
+	private LoadSpeedPreset BulkLoadSpeedPreset = LoadSpeedPreset.Convenient;
 
-	//containers
+	
+	// containers
 	private const float CONTAINER_REALISTIC_SPEED = 1.5f;
 	private const float CONTAINER_CONVENIENT_SPEED = 3f;
 	private const float CONTAINER_FAST_SPEED = 12f;
@@ -37,9 +43,10 @@ public class Settings: UnityModManager.ModSettings
 		LoadSpeedPreset.Fast => CONTAINER_FAST_SPEED,
 		_ => throw new ArgumentOutOfRangeException()
 	};
-	public LoadSpeedPreset ContainerLoadSpeedPreset = LoadSpeedPreset.Convenient;
+	private LoadSpeedPreset ContainerLoadSpeedPreset = LoadSpeedPreset.Convenient;
+	
 
-	public enum LoadSpeedPreset
+	private enum LoadSpeedPreset
 	{
 		Realistic = 0,
 		Convenient = 1,
@@ -47,6 +54,18 @@ public class Settings: UnityModManager.ModSettings
 	} 
 	
 	public void Draw(UnityModManager.ModEntry _)
+	{
+		AllowUsingDefaultMachine = GUILayout.Toggle(AllowUsingDefaultMachine, "Allow (un)loading cargo in the default, unrealistic, way");
+		
+		GUILayout.Space(20f);
+		DrawBulkSettings();
+		GUILayout.Space(20f);
+		DrawContainerSettings();
+		GUILayout.Space(20f);
+		DrawDebugSettings();
+	}
+
+	private void DrawBulkSettings()
 	{
 		GUILayout.Label("Bulk cargo loading speed (iron ore, coal, grains, etc)");
 		
@@ -62,9 +81,10 @@ public class Settings: UnityModManager.ModSettings
 		{
 			BulkLoadSpeedPreset = LoadSpeedPreset.Fast;
 		}
-		
-		GUILayout.Space(20f);
-		
+	}
+
+	private void DrawContainerSettings()
+	{
 		GUILayout.Label("Shipping containers loading speed");
 		
 		if (GUILayout.Toggle(ContainerLoadSpeedPreset == LoadSpeedPreset.Realistic, $"Realistic ({REALISTIC_MULTIPLIER:N0} m/s)"))
@@ -79,9 +99,10 @@ public class Settings: UnityModManager.ModSettings
 		{
 			ContainerLoadSpeedPreset = LoadSpeedPreset.Fast;
 		}
-		
-		GUILayout.Space(20f);
-		
+	}
+	
+	private void DrawDebugSettings()
+	{
 		EnableDebugLog = GUILayout.Toggle(EnableDebugLog, "Enable debug logging");
 		if (EnableDebugLog)
 		{

@@ -14,7 +14,11 @@ public class WarehouseMachine_AnyTrainToLoadPresentOnTrack_Patch
 {
 	private static bool Prefix(WarehouseMachine __instance, ref bool __result)
 	{
-		if (!AdvancedMachine.TryGetAdvancedMachine(__instance, out var advancedMachine)) return true;
+		if (Main.MySettings.AllowUsingDefaultMachine ||
+		    !AdvancedMachine.TryGetAdvancedMachine(__instance, out var advancedMachine))
+		{
+			return true;
+		}
 		
 		foreach (var currentTask in __instance.currentTasks)
 		{
